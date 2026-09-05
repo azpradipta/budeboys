@@ -1,4 +1,4 @@
-# 🩺 Healthalk
+# Healthalk - From Symptoms to Treatment
 
 > **From what you feel to what your doctor needs — connected in one health journey.**
 
