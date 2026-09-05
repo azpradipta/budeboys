@@ -46,8 +46,7 @@ export function LoginDialog({
       setLoading(false);
       setError(authError.message);
     }
-    // On success the browser is redirected to Google, so no further state
-    // update di sini, komponen ini keburu unmount.
+    // Kalau berhasil browser pindah ke Google, jadi komponennya keburu unmount.
   }
 
   return (

@@ -52,9 +52,7 @@ function Button({
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       render={render}
-      // `render` usually swaps in something that is not a native <button>,
-      // such as next/link's <a>, so default to false and let Base UI skip
-      // the native button semantics it would otherwise assume.
+      // `render` biasanya menukar elemennya jadi bukan <button>, misalnya <a>.
       nativeButton={nativeButton ?? render === undefined}
       {...props}
     />

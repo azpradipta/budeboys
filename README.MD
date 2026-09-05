@@ -32,12 +32,15 @@ Mencari tahu sendiri obatnya
 
 ```bash
 npm install
-cp .env.example .env.local   # isi kredensial Supabase, Healthify, OpenAI
+cp .env.example .env.local
 npm run dev
 ```
 
+`.env.local` menampung kredensial Supabase, RAG, dan OpenAI. Tiap
+variabelnya dijelaskan langsung di `.env.example`.
+
 Semua integrasi eksternal punya fallback lokal, jadi aplikasi tetap jalan
-walau Healthify atau OpenAI belum dikonfigurasi.
+walau RAG atau OpenAI belum dikonfigurasi.
 
 ## Dokumentasi API
 

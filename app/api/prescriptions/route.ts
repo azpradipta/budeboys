@@ -3,9 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptFromStorage, encryptForStorage } from "@/lib/server/crypto";
 import type { PrescriptionRecord, StoredPrescriptionRecord } from "@/lib/types";
 
-/** Server tidak pernah menyimpan gambar resep, hanya field hasil OCR.
- * `imageDataUrl: null` dikembalikan agar bentuknya cocok dengan
- * PrescriptionRecord di klien. */
+// Server tidak menyimpan gambar, jadi imageDataUrl selalu dikembalikan null.
 function toClientShape(record: StoredPrescriptionRecord): PrescriptionRecord {
   return { ...record, imageDataUrl: null };
 }

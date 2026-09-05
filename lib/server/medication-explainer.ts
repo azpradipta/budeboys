@@ -1,13 +1,7 @@
 import type { MedicationInfo } from "@/lib/types";
 
-/**
- * Menjelaskan obat setelah resep diverifikasi. Sengaja dibatasi: hanya
- * kegunaan umum, tanpa saran dosis, tanpa klaim cocok untuk kondisi
- * pengguna, tanpa janji hasil.
- *
- * Butuh OPENAI_API_KEY. Mengembalikan null bila gagal agar pemanggil
- * fallback ke drug KB lokal di lib/kb.ts.
- */
+// Penjelasan obat setelah resep diverifikasi: kegunaan umum saja, tanpa saran dosis.
+// Mengembalikan null bila gagal agar pemanggil fallback ke drug KB lokal.
 
 const BASE_URL = "https://api.openai.com/v1";
 

@@ -4,9 +4,7 @@ import { explainMedication } from "@/lib/server/medication-explainer";
 import { getMedicationInfo } from "@/lib/prescription-ai";
 import type { MedicationInfo, PrescriptionItem } from "@/lib/types";
 
-/** Penjelasan obat untuk item resep yang sudah diverifikasi. OpenAI dulu
- * (khasiat umum, tanpa saran dosis), lalu fallback per item ke drug KB
- * lokal. Wajib login karena memanggil API berbayar. */
+// Penjelasan obat untuk item yang sudah diverifikasi, OpenAI dulu lalu drug KB lokal.
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const {
