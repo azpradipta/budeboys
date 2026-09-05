@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-// Import Footer kamu di sini (pastikan file-nya sudah ada)
-// import Footer from "@/components/Footer";
+import Footer from "@/components/Footer";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
 
@@ -25,8 +25,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IngatSehat",
-  description: "Accessible healthcare assistant",
+  title: "Healthalk",
+  description: "AI-assisted healthcare journey — from symptoms to treatment.",
 };
 
 export default function RootLayout({
@@ -41,12 +41,15 @@ export default function RootLayout({
     >
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col antialiased bg-slate-50`}
+        suppressHydrationWarning
       >
-        <Navbar />
+        <TooltipProvider>
+          <Navbar />
 
-        <main className="flex-1">{children}</main>
+          <main className="flex-1">{children}</main>
 
-        {/* <Footer /> */}
+          <Footer />
+        </TooltipProvider>
       </body>
     </html>
   );
