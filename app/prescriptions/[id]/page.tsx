@@ -8,14 +8,21 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { PrescriptionVerify } from "@/components/prescription/prescription-verify";
 import { MedicationInfoCard } from "@/components/prescription/medication-info-card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { savePrescription, usePrescription } from "@/lib/store";
+import { savePrescription, useConsultationSession, usePrescription } from "@/lib/store";
 import { getMedicationInfo, needsVerification } from "@/lib/prescription-ai";
 import { recognizePrescription } from "@/lib/ocr-client";
 import { takePendingImage } from "@/lib/pending-image";
+import {
+  conditionOf,
+  CONDITION_KIND_LABEL,
+  assessmentOf,
+} from "@/lib/consultation-condition";
 import type { MedicationInfo, PrescriptionRecord } from "@/lib/types";
-import { ArrowLeft, ScanLine, ArrowRight, ImageOff } from "lucide-react";
+import { ArrowLeft, ScanLine, ArrowRight, ImageOff, Stethoscope } from "lucide-react";
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,6 +34,7 @@ export default function PrescriptionDetailPage() {
 
 function PrescriptionDetailBody({ id }: { id: string }) {
   const record = usePrescription(id);
+  const consultation = useConsultationSession(record?.consultationId ?? "");
   const ranOcr = useRef(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageGone, setImageGone] = useState(false);
@@ -118,27 +126,52 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           Resep tidak ditemukan
         </h1>
         <Button className="mt-6" render={<Link href="/prescriptions" />}>
-          Kembali ke Riwayat Resep
+          Kembali ke Resep
         </Button>
       </div>
     );
   }
 
   const backToConsultation = `/consultations/${record.consultationId}`;
+  const cond = conditionOf(consultation ?? null);
+  const assessment = assessmentOf(consultation ?? null);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
       <Link
-        href={backToConsultation}
+        href="/prescriptions"
         className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke Konsultasi
+        <ArrowLeft className="size-3.5" /> Resep
       </Link>
       <PageHeader
-        title="Pemahaman Resep"
-        description="Verifikasi hasil pembacaan resep, lalu lihat penjelasan tiap obat."
+        eyebrow="Resep untuk kondisi"
+        title={cond.kind === "unknown" ? "Pemahaman Resep" : cond.label}
+        description="Obat untuk kondisi ini beserta penjelasannya. Dosis & aturan pakai selalu mengikuti yang dituliskan dokter."
         actions={<StatusBadge status={record.status as "PROCESSING"} />}
       />
+
+      {consultation && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Stethoscope className="size-4 text-primary" />
+              <span className="text-xs font-semibold tracking-wide text-primary uppercase">
+                Kondisi / Pra-diagnosa
+              </span>
+              <Badge variant="outline">{CONDITION_KIND_LABEL[cond.kind]}</Badge>
+            </div>
+            <p className="font-heading text-base font-medium text-foreground">{cond.label}</p>
+            {assessment && <p className="text-sm text-muted-foreground">{assessment}</p>}
+            <Link
+              href={backToConsultation}
+              className="w-fit text-xs text-primary underline-offset-2 hover:underline"
+            >
+              Lihat konsultasi asal →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {imageGone ? (
         <Alert variant="destructive">

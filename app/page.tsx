@@ -33,7 +33,7 @@ const quickActions = [
   },
   {
     title: "Resep Saya",
-    description: "Lihat resep yang sudah diunggah dari sesi konsultasi Anda.",
+    description: "Kondisi dari tiap konsultasi beserta obat dan penjelasannya.",
     href: "/prescriptions",
     icon: ScanLine,
   },

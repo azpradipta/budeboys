@@ -55,6 +55,23 @@ export function PrescriptionVerify({
     onChangeItems(next);
   }
 
+  function verifyAll() {
+    const next = items.map((item) => {
+      let updated = item;
+      for (const { key } of FIELD_LABELS) {
+        const current = updated[key];
+        if (current && typeof current === "object") {
+          updated = {
+            ...updated,
+            [key]: { ...current, verified: true, needsVerification: false },
+          };
+        }
+      }
+      return updated;
+    });
+    onChangeItems(next);
+  }
+
   const allVerified = items.every((item) =>
     FIELD_LABELS.every(({ key }) => {
       const f = item[key];
@@ -78,6 +95,18 @@ export function PrescriptionVerify({
       )}
 
       <div className="flex flex-col gap-5">
+        {!allVerified && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm dark:bg-amber-950/30">
+            <span className="text-amber-800 dark:text-amber-300">
+              Periksa hasil bacaan di bawah, lalu konfirmasi.
+            </span>
+            <Button size="sm" variant="outline" onClick={verifyAll} disabled={busy}>
+              <CircleCheck className="size-3.5" />
+              Konfirmasi Semua
+            </Button>
+          </div>
+        )}
+
         {items.map((item, itemIdx) => (
           <Card key={item.id}>
             <CardContent className="flex flex-col gap-3">

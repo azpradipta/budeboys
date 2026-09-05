@@ -21,6 +21,14 @@ import { formatDuration } from "@/lib/format";
 import type { ConsultationSession, DoctorValidation } from "@/lib/types";
 import { CheckCircle2, ShieldCheck, Share2, AlertTriangle, Clock } from "lucide-react";
 
+/** Treat these as "the user didn't actually say this" — hide the field
+ * rather than showing a bare "unknown". */
+function isBlank(value: string | null | undefined): boolean {
+  if (!value) return true;
+  const t = value.trim().toLowerCase();
+  return t === "" || t === "unknown" || t === "-" || t.includes("tidak disebutkan");
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
@@ -104,7 +112,9 @@ export function ConsultationResult({
               </div>
             </Section>
 
-            <Section title="Durasi / Onset Gejala">{summary.duration_onset}</Section>
+            {!isBlank(summary.duration_onset) && (
+              <Section title="Durasi / Onset Gejala">{summary.duration_onset}</Section>
+            )}
 
             {summary.relevant_information.length > 0 && (
               <Section title="Important Information">
@@ -181,7 +191,9 @@ export function ConsultationResult({
                     </p>
                     <p><strong>Chief Complaint:</strong> {summary.chief_complaint}</p>
                     <p><strong>Symptoms:</strong> {summary.reported_symptoms.join(", ")}</p>
-                    <p><strong>Durasi/Onset Gejala:</strong> {summary.duration_onset}</p>
+                    {!isBlank(summary.duration_onset) && (
+                      <p><strong>Durasi/Onset Gejala:</strong> {summary.duration_onset}</p>
+                    )}
                     <p><strong>AI Preliminary Assessment:</strong> {summary.ai_preliminary_assessment}</p>
                     <p><strong>Recommended Next Step:</strong> {summary.recommended_next_step}</p>
                   </div>

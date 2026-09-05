@@ -134,12 +134,16 @@ export function useConsultationSessions(): ConsultationSession[] {
   );
 }
 
-/** undefined = not yet resolved, null = confirmed not found on the server. */
+/** undefined = not yet resolved, null = confirmed not found on the server.
+ * An empty `id` is a no-op (callers can pass "" before the real id loads). */
 export function useConsultationSession(id: string): ConsultationSession | null | undefined {
   useEffect(() => {
-    sessionStore.preloadOne(id);
+    if (id) sessionStore.preloadOne(id);
   }, [id]);
-  const getSnapshot = useCallback(() => sessionStore.getOneSnapshot(id), [id]);
+  const getSnapshot = useCallback(
+    () => (id ? sessionStore.getOneSnapshot(id) : undefined),
+    [id]
+  );
   return useSyncExternalStore(sessionStore.subscribe, getSnapshot, () => undefined);
 }
 
