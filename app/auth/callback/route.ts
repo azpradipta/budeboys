@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** Google redirects back here (via Supabase) after the user approves the
- * OAuth consent screen — exchanges the auth code for a session cookie, then
- * sends the user on to wherever they were originally headed. */
+/** Tujuan balik Google setelah pengguna menyetujui consent OAuth. Menukar
+ * auth code jadi cookie sesi, lalu meneruskan ke halaman yang dituju. */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");

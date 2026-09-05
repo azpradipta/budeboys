@@ -1,28 +1,18 @@
 /**
- * Encryption for health data at rest (docs/prd.md Section 29 ENCRYPTED
- * HEALTH RECORD / Section 4.5 "Health Data Is Sensitive").
+ * Enkripsi kolom `data` pada tabel consultations dan prescriptions, sehingga
+ * akses langsung ke database hanya menghasilkan ciphertext. RLS tetap jadi
+ * lapisan access control; ini melindungi datanya.
  *
- * Every consultation / prescription row's `data` JSONB column goes through
- * `encryptForStorage` on write and `decryptFromStorage` on read (see
- * app/api/consultations/* and app/api/prescriptions/*). With
- * APP_ENCRYPTION_KEY set, `data` holds an AES-256-GCM envelope instead of
- * plaintext JSON, so anyone with raw DB or backup access (the Supabase
- * dashboard, a leaked dump) sees ciphertext only. Row Level Security stays
- * the access-control layer; this is defence-in-depth for the bytes at rest.
- *
- * Key: APP_ENCRYPTION_KEY — 32 bytes, hex (64 chars) or base64. Generate:
+ * APP_ENCRYPTION_KEY: 32 byte, hex atau base64.
  *   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
- * Server-only; never expose with a NEXT_PUBLIC_ prefix. There is no
- * multi-key envelope versioning yet, so rotating the key makes already
- * stored rows unreadable.
+ * Mengganti key membuat row lama tidak terbaca, karena envelope belum
+ * menyimpan key id.
  *
- * `aad` (additional authenticated data) binds a ciphertext to a value that
- * is not secret but must not change — the routes pass the owning `user.id`,
- * so a row copied onto another user's id fails its auth-tag check.
+ * `aad` mengikat ciphertext ke user id pemiliknya, jadi row yang dipindah ke
+ * user lain gagal auth tag.
  *
- * Backward compatible: rows written before a key existed are plain JSON;
- * `decryptFromStorage` recognises the envelope and passes anything else
- * through untouched. Once the key is set, every new write is encrypted.
+ * Row lama yang belum terenkripsi tetap berupa JSON biasa dan dilewatkan
+ * apa adanya.
  */
 
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
@@ -54,7 +44,7 @@ function getKey(): Buffer | null {
     : Buffer.from(raw, "base64");
   if (buf.length !== 32) {
     throw new Error(
-      `APP_ENCRYPTION_KEY must be 32 bytes as hex (64 chars) or base64 — decoded to ${buf.length} bytes. ` +
+      `APP_ENCRYPTION_KEY must be 32 bytes as hex (64 chars) or base64, but decoded to ${buf.length} bytes. ` +
         `Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
     );
   }
@@ -78,16 +68,13 @@ function warnPlaintextOnce() {
   if (warned) return;
   warned = true;
   console.warn(
-    "[crypto] APP_ENCRYPTION_KEY is not set — health records are being stored UNENCRYPTED. " +
+    "[crypto] APP_ENCRYPTION_KEY is not set, so health records are being stored UNENCRYPTED. " +
       "Set it to enable AES-256-GCM encryption at rest."
   );
 }
 
-/**
- * Encrypt `data` for the `data` JSONB column. Returns an
- * {@link EncryptedEnvelope} (typed as `T` so call sites stay unchanged)
- * when a key is configured, otherwise the value untouched.
- */
+/** Mengembalikan envelope terenkripsi bila key tersedia, kalau tidak nilai
+ * aslinya. Tipe kembalian tetap `T` agar call site tidak berubah. */
 export function encryptForStorage<T>(data: T, aad?: string): T {
   const key = getKey();
   if (!key) {
@@ -113,19 +100,15 @@ export function encryptForStorage<T>(data: T, aad?: string): T {
   return envelope as unknown as T;
 }
 
-/**
- * Inverse of {@link encryptForStorage}. Values that are not an envelope
- * (rows written before encryption was enabled) are returned as-is. Throws
- * if an envelope is found but no key is configured, or if the ciphertext /
- * `aad` fails authentication.
- */
+/** Kebalikan dari encryptForStorage. Melempar error bila menemukan envelope
+ * tanpa key, atau bila ciphertext dan `aad` gagal diautentikasi. */
 export function decryptFromStorage<T>(stored: T, aad?: string): T {
   if (!isEnvelope(stored)) return stored;
 
   const key = getKey();
   if (!key) {
     throw new Error(
-      "Found an encrypted health record but APP_ENCRYPTION_KEY is not set — cannot decrypt."
+      "Found an encrypted health record but APP_ENCRYPTION_KEY is not set, so it cannot be decrypted."
     );
   }
 

@@ -2,11 +2,9 @@ import { field, genId, type MedicationInfo, type PrescriptionItem } from "./type
 import { lookupMedication } from "./kb";
 
 /**
- * Prescription-side helpers that don't need OCR itself (that part is real
- * now — see lib/ocr-client.ts): image quality gating (Section 35), the
- * NEEDS_VERIFICATION check (Section 38), a plain rule-based parser used as
- * the fallback when the LLM parse route is unavailable, and medication info
- * lookup against the local drug KB (Section 40-41).
+ * Helper resep di sekitar OCR: penyaringan kualitas gambar, penentuan perlu
+ * verifikasi, parser berbasis aturan saat route LLM tidak tersedia, dan
+ * pencarian ke drug KB lokal.
  */
 
 export function checkImageQuality(file: File): { ok: boolean; reason?: string } {
@@ -19,10 +17,9 @@ export function checkImageQuality(file: File): { ok: boolean; reason?: string } 
   return { ok: true };
 }
 
-/** Rule-based extraction of one PrescriptionItem from raw OCR text — the
- * fallback for app/api/prescription/parse when OpenAI is unavailable.
- * Deliberately conservative: low confidences so the verify screen flags
- * everything. */
+/** Fallback untuk app/api/prescription/parse saat OpenAI tidak tersedia.
+ * Sengaja konservatif: confidence dibuat rendah agar semua field ditandai
+ * untuk diverifikasi. */
 export function parsePrescriptionText(rawText: string): PrescriptionItem[] {
   const text = rawText || "";
   const firstLine =
@@ -78,7 +75,7 @@ export function getMedicationInfo(item: PrescriptionItem): MedicationInfo {
       route: item.route.value,
       prescription_instruction: item.instruction.value,
       important_general_information: [
-        "MEDICATION_MATCH_FAILED — konfirmasikan nama obat ini langsung ke apoteker/dokter.",
+        "MEDICATION_MATCH_FAILED: konfirmasikan nama obat ini langsung ke apoteker atau dokter.",
       ],
       matched: false,
     };

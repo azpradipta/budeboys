@@ -1,6 +1,4 @@
-// Domain types for Healthalk, modeled after docs/prd.md
-// (Section 10 HealthContext, Section 16 Evidence, Section 26 Summary,
-//  Section 36-40 Prescription, Section 56 Minimum Data Entities)
+// Tipe domain yang dipakai bersama oleh klien, route API, dan spec OpenAPI.
 
 export type Severity = "mild" | "moderate" | "severe" | "unknown";
 
@@ -54,8 +52,6 @@ export type SourceType =
   | "clinical_guideline"
   | "authoritative_health_source";
 
-/** Evidence source metadata (Section 16). Demo KB is local & clearly labeled
- * as illustrative — it stands in for a real evidence-retrieval backend. */
 export interface EvidenceSource {
   source_id: string;
   title: string;
@@ -71,7 +67,7 @@ export interface EvidenceSource {
 export interface EvidenceReference {
   source: EvidenceSource;
   snippet: string;
-  /** internal score, PRD 19: "tidak harus ditampilkan ke user" as raw number */
+  /** Skor relevansi internal, tidak untuk ditampilkan mentah ke pengguna. */
   score: number;
 }
 
@@ -157,7 +153,7 @@ export interface PrescriptionItem {
 export interface MedicationInfo {
   medicine_name: string;
   general_use: string;
-  /** Brief lay explanation of how it works. May be empty. */
+  /** Cara kerja obat dalam bahasa awam. Boleh kosong. */
   how_it_works?: string;
   dosage_as_written: string;
   frequency_as_written: string;
@@ -165,7 +161,7 @@ export interface MedicationInfo {
   prescription_instruction: string;
   important_general_information: string[];
   matched: boolean;
-  /** Where the explanation came from. */
+  /** Asal penjelasan ini. */
   source?: "openai" | "local_kb" | "unmatched";
 }
 
@@ -180,26 +176,21 @@ export type PrescriptionStatus =
 
 export interface PrescriptionRecord {
   id: string;
-  /** Links this prescription to the consultation it was uploaded from —
-   * prescriptions can only be created from within a consultation's Phase 3,
-   * never as a standalone upload. */
+  /** Resep selalu dibuat dari dalam konsultasi, bukan unggahan lepas. */
   consultationId: string;
   status: PrescriptionStatus;
-  /** Client-side only — the raw image is processed locally for OCR and is
-   * never sent to or persisted by the server. Always null once this record
-   * comes back from the API. */
+  /** Hanya terisi di browser. Gambar di-OCR lokal dan tidak pernah diunggah,
+   * jadi selalu null pada record yang datang dari API. */
   imageDataUrl: string | null;
   fileName: string;
   createdAt: string;
-  /** Raw OCR transcription (the user can correct it before it's parsed).
-   * This is text only — the image itself never leaves the client. */
+  /** Teks mentah OCR, bisa dikoreksi pengguna sebelum di-parse. */
   rawText?: string;
   items: PrescriptionItem[];
   medications: MedicationInfo[];
 }
 
-/** Shape actually persisted server-side — same as PrescriptionRecord minus
- * the client-only image preview. */
+/** Yang benar-benar disimpan server: semuanya kecuali preview gambar. */
 export type StoredPrescriptionRecord = Omit<PrescriptionRecord, "imageDataUrl">;
 
 export function genId(prefix: string): string {

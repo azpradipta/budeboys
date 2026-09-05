@@ -27,9 +27,8 @@ import { ArrowLeft, ScanLine, ImageOff, Stethoscope, Sparkles } from "lucide-rea
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
-  // Keyed so every field of local state (previewUrl, imageGone, the ranOcr
-  // guard) naturally resets via remount when navigating between different
-  // prescriptions — no manual "reset state on id change" effect needed.
+  // Di-key agar seluruh state lokal ikut ter-reset lewat remount saat
+  // berpindah resep, tanpa effect "reset saat id berubah".
   return <PrescriptionDetailBody key={params.id} id={params.id} />;
 }
 
@@ -54,16 +53,15 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     savePrescription(next);
   }
 
-  // Run real, client-side OCR once when a freshly uploaded record is opened
-  // — consumes the transient in-memory file handed off from Phase 3.
+  // Jalankan OCR sekali saat record baru dibuka, memakai file sementara
+  // yang dioper dari langkah unggah.
   useEffect(() => {
     if (!record || record.status !== "UPLOADED" || ranOcr.current) return;
     ranOcr.current = true;
 
     const file = takePendingImage(record.id);
     if (!file) {
-      // Deferred (not a bare setState-then-return in the effect body) —
-      // consistent with the async continuations below.
+      // Ditunda agar tidak setState langsung di badan effect.
       Promise.resolve().then(() => setImageGone(true));
       return;
     }
@@ -74,14 +72,14 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     recognizeRawText(file)
       .then((rawText) => {
         setPreviewUrl(objectUrl);
-        // Stop at raw text — the user reviews/corrects it, then the LLM
-        // turns it into structured fields.
+        // Berhenti di teks mentah: pengguna mengoreksi dulu, baru LLM
+        // mengubahnya jadi field terstruktur.
         savePrescription({ ...record, status: "TEXT_REVIEW", rawText });
       })
       .catch(() => {
         URL.revokeObjectURL(objectUrl);
         savePrescription({ ...record, status: "UPLOADED" });
-        setImageGone(true); // OCR failed — treat like "needs a fresh photo"
+        setImageGone(true); // OCR gagal, perlakukan seperti gambar hilang
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record?.id, record?.status]);
@@ -91,10 +89,9 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     const rawText = (textRef.current?.value ?? record.rawText ?? "").trim();
     if (!rawText) return;
     setParsing(true);
-    // Always land on the editable structured view after parsing — even when
-    // the LLM is confident, the user should get one look at nama obat / dosis
-    // / frekuensi before we generate the medication explanation. The
-    // "Konfirmasi Semua" button makes it a single click when it's already right.
+    // Selalu masuk ke tampilan field yang bisa diedit. Sekalipun LLM yakin,
+    // pengguna tetap perlu memeriksa nama obat, dosis, dan frekuensi sebelum
+    // penjelasan obat dibuat. Tombol "Konfirmasi Semua" jadi jalan cepatnya.
     const advance = (items: PrescriptionItem[]) =>
       persist({ ...record, rawText, items, status: "NEEDS_VERIFICATION" });
     try {
@@ -207,7 +204,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           <ImageOff className="size-4" />
           <AlertTitle>Gambar tidak lagi tersedia</AlertTitle>
           <AlertDescription>
-            Foto resep hanya diproses sekali di perangkat Anda dan tidak disimpan — sepertinya
+            Foto resep hanya diproses sekali di perangkat Anda dan tidak disimpan. Sepertinya
             halaman ini dibuka ulang. Silakan unggah ulang dari konsultasinya.
             <div className="mt-3">
               <Button size="sm" render={<Link href={backToConsultation} />}>
@@ -285,7 +282,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           ))}
           <p className="text-center text-[11px] text-muted-foreground">
             Healthalk berfungsi sebagai Prescription Understanding Layer, bukan prescribing
-            system — resep ini tidak diubah oleh AI.
+            system. Resep ini tidak diubah oleh AI.
           </p>
         </div>
       )}

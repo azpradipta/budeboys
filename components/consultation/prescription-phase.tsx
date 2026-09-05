@@ -14,9 +14,8 @@ import { savePrescription, usePrescriptionsForConsultation } from "@/lib/store";
 import { genId, type PrescriptionRecord } from "@/lib/types";
 import { UploadCloud, ImageOff, ScanLine, ChevronRight, Pill } from "lucide-react";
 
-/** Phase 3 (Understand Treatment) lives inside the consultation it belongs
- * to — a prescription can only ever be uploaded from here, never as a
- * standalone action (docs/prd.md Section 34 + team decision). */
+/** Fase 3 menempel pada konsultasinya: resep hanya bisa diunggah dari sini,
+ * tidak pernah sebagai aksi lepas. */
 export function PrescriptionPhase({ consultationId }: { consultationId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,8 +39,8 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
     setToCrop(null);
     setLoading(true);
     const id = genId("rx");
-    // The raw file stays in memory only — handed off to the OCR step on
-    // the next page, never sent anywhere (lib/pending-image.ts).
+    // File-nya hanya ada di memori, dioper ke tahap OCR di halaman berikut
+    // dan tidak dikirim ke mana pun (lib/pending-image.ts).
     stashPendingImage(id, file);
 
     const record: PrescriptionRecord = {
@@ -122,8 +121,8 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
         </Button>
 
         <p className="text-[11px] text-muted-foreground">
-          Gambar dibaca (OCR) langsung di perangkat Anda dan tidak pernah dikirim ke server —
-          hanya teks hasil bacaannya yang dipakai untuk menyusun resep.
+          Gambar dibaca (OCR) langsung di perangkat Anda dan tidak pernah dikirim ke server.
+          Hanya teks hasil bacaannya yang dipakai untuk menyusun resep.
         </p>
       </CardContent>
 

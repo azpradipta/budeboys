@@ -56,7 +56,7 @@ export function DoctorValidationCard({
         <div className="flex items-center gap-2">
           <Stethoscope className="size-4 text-primary" />
           <p className="text-xs font-semibold tracking-wide text-primary uppercase">
-            Phase 2 · Validate — Doctor Validation
+            Phase 2 · Validasi Dokter
           </p>
         </div>
 
@@ -66,11 +66,11 @@ export function DoctorValidationCard({
               <p className="text-[11px] font-medium text-muted-foreground uppercase">
                 Diagnosis <span className="text-primary">(source: DOCTOR)</span>
               </p>
-              <p className="text-foreground">{validation.diagnosis || "—"}</p>
+              <p className="text-foreground">{validation.diagnosis || "-"}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium text-muted-foreground uppercase">Treatment</p>
-              <p className="text-foreground">{validation.treatment || "—"}</p>
+              <p className="text-foreground">{validation.treatment || "-"}</p>
             </div>
             {validation.additional_notes && (
               <div>
@@ -87,7 +87,7 @@ export function DoctorValidationCard({
         ) : (
           <p className="text-sm text-muted-foreground">
             Bawa ringkasan ini ke konsultasi dokter langsung. Untuk keperluan demo, validasi
-            dokter dapat dicatat manual di bawah ini — diagnosis tetap bersumber dari dokter,
+            dokter dapat dicatat manual di bawah ini. Diagnosis tetap bersumber dari dokter,
             bukan AI.
           </p>
         )}

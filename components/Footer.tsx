@@ -32,7 +32,7 @@ const Footer = () => {
               Healthalk<span className="text-primary/60">.</span>
             </Link>
             <p className="mt-3 text-sm text-muted-foreground">
-              Dari cerita keluhan hingga pemahaman resep — satu perjalanan
+              Dari cerita keluhan hingga pemahaman resep, satu perjalanan
               kesehatan yang tetap terhubung.
             </p>
             <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -66,7 +66,7 @@ const Footer = () => {
 
         <div className="mt-10 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} Healthalk. Prototype hackathon — bukan
+            © {new Date().getFullYear()} Healthalk. Prototype hackathon, bukan
             alat diagnosis medis.
           </p>
           <p>

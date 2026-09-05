@@ -1,9 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-/** Server-side Supabase client for Route Handlers / Server Components —
- * reads the user's session from cookies, so every query runs as that user
- * and Postgres RLS (docs/supabase-schema.sql) enforces per-user isolation. */
+/** Supabase client untuk route handler dan server component. Sesi dibaca
+ * dari cookie sehingga tiap query berjalan sebagai user tersebut dan RLS
+ * Postgres yang menjaga isolasi (docs/supabase-schema.sql). */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
@@ -21,9 +21,8 @@ export async function createSupabaseServerClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Called from a Server Component render, where cookies can't be
-            // set — harmless as long as proxy.ts is also refreshing the
-            // session (it is), which is the supported pattern for this.
+            // Server component tidak bisa menulis cookie. Aman, karena
+            // proxy.ts yang me-refresh sesinya.
           }
         },
       },

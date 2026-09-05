@@ -3,17 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Thin wrapper around the browser's native Web Speech API.
- *
- * docs/prd.md Section 8 asks for Audio -> Speech Recognition -> Transcript,
- * and TTS for spoken responses. Rather than mocking that too, this hackathon
- * build uses the real in-browser SpeechRecognition/SpeechSynthesis so voice
- * interaction genuinely works (Chrome/Edge). It degrades gracefully to a
- * text input fallback where unsupported (Firefox/Safari) — callers should
- * check `supported` and render a text field instead.
+ * Pembungkus SpeechRecognition dan SpeechSynthesis bawaan browser, tersedia
+ * di Chrome dan Edge. Pemanggil perlu memeriksa `supported` dan menyediakan
+ * input teks sebagai gantinya.
  */
 
-// Minimal ambient types — not yet in lib.dom.d.ts everywhere.
+// Tipe ambient, karena lib.dom.d.ts belum memuat semuanya.
 interface SpeechRecognitionResultLike {
   isFinal: boolean;
   0: { transcript: string };
@@ -49,8 +44,8 @@ export function useSpeechRecognition(lang = "id-ID") {
   const onFinalRef = useRef<((text: string) => void) | null>(null);
 
   useEffect(() => {
-    // One-shot browser feature detection (never changes during a session) —
-    // must run client-only since SSR has no `window`/SpeechRecognition.
+    // Hasil deteksi tidak berubah selama sesi, dan harus di sisi klien
+    // karena SSR tidak punya `window`.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSupported(getRecognitionCtor() !== null);
   }, []);
@@ -113,8 +108,8 @@ export function speak(
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = opts.lang ?? "id-ID";
   utterance.onstart = () => opts.onStart?.();
-  // Fires on natural completion AND on cancel() — callers use it to flip
-  // their "AI is speaking" state back off.
+  // Terpanggil saat selesai normal maupun saat cancel(), dipakai pemanggil
+  // untuk mematikan status "AI sedang bicara".
   utterance.onend = () => opts.onEnd?.();
   utterance.onerror = () => opts.onEnd?.();
   window.speechSynthesis.speak(utterance);

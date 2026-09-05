@@ -34,7 +34,7 @@ async function fetchSummary(session: ConsultationSession): Promise<ConsultationS
     duration_onset: session.healthContext.duration ?? "unknown",
     relevant_information: [],
     questions_discussed: [],
-    ai_preliminary_assessment: "Ringkasan tidak dapat dibuat saat ini — server bermasalah.",
+    ai_preliminary_assessment: "Ringkasan tidak dapat dibuat saat ini karena server bermasalah.",
     evidence_discussed: [],
     recommended_next_step: "Konsultasikan langsung dengan dokter.",
     important_warnings: [],

@@ -1,48 +1,48 @@
-# Healthify Intelligence API integration
+# Integrasi Healthify Intelligence API
 
-The consultation feature (Phase 1) is grounded by the team's **Healthify
-Intelligence API** — real RAG over peer-reviewed journal literature, with
-verified DOIs. Docs: https://healthify.twenti.studio/docs
+Fitur konsultasi (Fase 1) dilandasi **Healthify Intelligence API**, RAG di atas
+literatur jurnal peer-reviewed dengan DOI tervalidasi.
+Dokumentasi: https://healthify.twenti.studio/docs
 
 ## Setup
 
-1. On the docs page, click **Request API access**, describe the app and
-   expected volume, and you'll get a key like `ht_live_xxxxxxxx`.
-2. Put it in `.env.local` (server-only — never `NEXT_PUBLIC_`):
+1. Di halaman dokumentasi, klik **Request API access**, jelaskan aplikasi dan
+   perkiraan volume, lalu key seperti `ht_live_xxxxxxxx` akan diberikan.
+2. Simpan di `.env.local` (server-only, jangan pakai prefiks `NEXT_PUBLIC_`):
 
    ```
    HEALTHIFY_API_KEY=ht_live_xxxxxxxx
    HEALTHIFY_API_BASE_URL=https://healthify.twenti.studio
    ```
 
-3. Restart the dev server. That's it — the app switches from the local
-   rule-based fallback to the real API automatically.
+3. Restart dev server. Aplikasi otomatis beralih dari fallback lokal ke API
+   sungguhan.
 
-Until a key is set, everything still works: the routes below fall back to
-the local rule-based logic + demo KB in `lib/health-ai.ts` / `lib/kb.ts`.
+Selama key belum diisi, semuanya tetap berfungsi memakai logika berbasis aturan
+dan demo KB di `lib/health-ai.ts` dan `lib/kb.ts`.
 
-## How it's wired
+## Pemetaan route
 
-| Our route | Calls Healthify | Fallback |
+| Route kita | Memanggil Healthify | Fallback |
 |---|---|---|
 | `POST /api/consultation/turn` | `POST /api/v1/intelligence/query` (`mode: consultation`, `format: full`) | `generateLocalTurn()` |
 | `POST /api/consultation/summary` | `POST /api/v1/intelligence/summary` | `generateSummary()` |
 
-- `lib/server/healthify-client.ts` — the HTTP client. Returns `null` (never
-  throws) on any failure so callers fall back cleanly.
-- `lib/server/healthify-mapping.ts` — the only place that knows Healthify's
-  field names vs ours. If their shape changes, edit only this file.
-- Our consultation id (`cons_xxxx`) is reused directly as Healthify's
-  `context.session_id`, so multi-turn context accumulation is handled by
-  Healthify server-side across a whole consultation.
+- `lib/server/healthify-client.ts`: HTTP client. Selalu mengembalikan `null`
+  saat gagal, tidak pernah throw, agar fallback berjalan mulus.
+- `lib/server/healthify-mapping.ts`: satu-satunya tempat yang tahu perbedaan
+  nama field Healthify dan milik kita. Kalau bentuk response mereka berubah,
+  cukup ubah file ini.
+- Id konsultasi kita dipakai langsung sebagai `context.session_id`, sehingga
+  akumulasi konteks antar giliran ditangani Healthify di sisi server.
 
-## Notes from their docs we honor
+## Aturan dari dokumentasi mereka yang kita patuhi
 
-- **Never build `https://doi.org/{doi}` ourselves** — we only render a
-  source link when Healthify returns a validated `url`.
-- **`notice` / `has_evidence: false` / safety flags** — mapped onto our
-  `RiskLevel` + `insufficientEvidence` + emergency response text.
-- **Latency 2-10s** — the turn route awaits it directly (fine for a
-  hackathon); the UI already shows a "thinking" state during the wait.
-- Rate limit is 60 req/min **per key, shared across all app users** — which
-  is why `/api/consultation/*` require auth.
+- **Jangan menyusun `https://doi.org/{doi}` sendiri.** Tautan sumber hanya
+  ditampilkan bila Healthify mengembalikan `url` yang tervalidasi.
+- **`notice`, `has_evidence: false`, dan safety flag** dipetakan ke `RiskLevel`,
+  `insufficientEvidence`, dan teks respons darurat kita.
+- **Latensi 2-10 detik.** Route turn menunggunya langsung, dan UI sudah
+  menampilkan status "sedang berpikir" selama itu.
+- **Rate limit 60 request per menit per key, dipakai bersama semua pengguna.**
+  Karena itu `/api/consultation/*` mewajibkan login.

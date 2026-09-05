@@ -82,7 +82,7 @@ export function ImageCropper({
     try {
       onDone(await toCroppedFile(img, completed, file.name));
     } catch {
-      onDone(file); // cropping failed — proceed with the original image
+      onDone(file); // crop gagal, lanjutkan dengan gambar aslinya
     } finally {
       setBusy(false);
     }
@@ -107,10 +107,11 @@ export function ImageCropper({
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/90 p-4">
         {src && (
           <ReactCrop
-            // Height cap goes on ReactCrop, not the <img>: the library's
-            // `.ReactCrop__child-wrapper > img { max-height: inherit }` beats
-            // a class on the image, so the image only shrinks if ReactCrop
-            // itself is bounded. calc() leaves room for the header + footer.
+            // Batas tinggi dipasang di ReactCrop, bukan di <img>. Aturan
+            // `.ReactCrop__child-wrapper > img { max-height: inherit }` milik
+            // library mengalahkan class di gambar, jadi gambar baru mengecil
+            // kalau ReactCrop-nya yang dibatasi. calc() menyisakan ruang
+            // untuk header dan footer.
             className="max-h-[calc(100vh-9rem)] max-w-full"
             crop={crop}
             onChange={(_px, percent) => setCrop(percent)}

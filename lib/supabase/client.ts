@@ -2,8 +2,8 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-/** Browser-side Supabase client — used for signInWithOAuth, signOut, and
- * reactive auth state (lib/auth/use-user.ts). */
+/** Supabase client sisi browser untuk signInWithOAuth, signOut, dan status
+ * auth reaktif di lib/auth/use-user.ts. */
 export function createSupabaseBrowserClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

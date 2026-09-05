@@ -5,9 +5,8 @@ import { mapHealthifySummary } from "@/lib/server/healthify-mapping";
 import { generateSummary } from "@/lib/health-ai";
 import type { ConsultationSession } from "@/lib/types";
 
-/** Consultation-completion summary (docs/prd.md Section 26-28). Tries
- * Healthify's real /summary endpoint (provenance-tagged per field) first,
- * falls back to the local generator in lib/health-ai.ts. */
+/** Ringkasan penutup konsultasi. Mencoba endpoint /summary Healthify dulu,
+ * lalu fallback ke generator lokal di lib/health-ai.ts. */
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const {
