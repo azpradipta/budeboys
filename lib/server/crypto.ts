@@ -73,6 +73,19 @@ function warnPlaintextOnce() {
   );
 }
 
+/** Apakah kunci enkripsi terpasang. Dipakai halaman /privacy supaya statusnya
+ * dilaporkan apa adanya, bukan sekadar klaim di teks. Melempar error kalau
+ * key ada tapi bentuknya salah, agar salah konfigurasi tidak lolos diam-diam. */
+export function isEncryptionConfigured(): boolean {
+  return getKey() !== null;
+}
+
+/** Apakah satu nilai yang sudah tersimpan di database benar-benar berbentuk
+ * envelope terenkripsi, bukan JSON terbaca. */
+export function isStoredEncrypted(stored: unknown): boolean {
+  return isEnvelope(stored);
+}
+
 /** Mengembalikan envelope terenkripsi bila key tersedia, kalau tidak nilai
  * aslinya. Tipe kembalian tetap `T` agar call site tidak berubah. */
 export function encryptForStorage<T>(data: T, aad?: string): T {

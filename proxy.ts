@@ -13,9 +13,32 @@ import { NextResponse, type NextRequest } from "next/server";
  * sendiri, sesuai anjuran Next agar tidak bergantung pada proxy saja.
  */
 
-const PROTECTED_PREFIXES = ["/consultations", "/prescriptions", "/profile"];
+/** Kept in sync by hand with `config.matcher` below — the matcher decides
+ * which requests reach this file at all, this list decides which of those get
+ * redirected. Matcher patterns must be static literals, so they can't be
+ * derived from this array. */
+const PROTECTED_PREFIXES = ["/consultations", "/prescriptions", "/profile", "/privacy"];
+
+/**
+ * The OAuth callback must never go through the Supabase client here.
+ *
+ * `config.matcher` already keeps it out, but this guard stays as a tripwire:
+ * widening the matcher again would silently reintroduce a login-breaking bug.
+ *
+ * `getUser()` on a dead session makes auth-js call `_removeSession()`, which
+ * clears the session *and every PKCE code verifier*. Those removals run
+ * through `setAll` below, which rewrites `request.cookies` — so the callback
+ * route handler would then read an empty `sb-…-auth-token-code-verifier` and
+ * `exchangeCodeForSession()` would fail. That is what made every login after
+ * a logout bounce to `/?auth_error=1`.
+ */
+const AUTH_CALLBACK_PATH = "/auth/callback";
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === AUTH_CALLBACK_PATH) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   // Tanpa konfigurasi Supabase, biarkan semua lewat daripada mematikan
@@ -57,7 +80,15 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     url.searchParams.set("login", "1");
     url.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    // `NextResponse.redirect()` is a brand new response, so anything the
+    // Supabase client wrote onto `response` — a refreshed session, or the
+    // removal of one whose refresh token is no longer valid — would be
+    // dropped. That left dead cookies in the browser that could never be
+    // cleaned up on a protected path, so every visit failed the same way:
+    // a permanent redirect loop. Carry those Set-Cookie headers over.
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
   }
 
   if (request.nextUrl.pathname === "/" && user) {

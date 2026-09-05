@@ -1,52 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
 import { useConsultationSessions, usePrescriptions } from "@/lib/store";
 import { useUser } from "@/lib/auth/use-user";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import {
-  ShieldCheck,
-  Lock,
-  Eye,
-  Database,
-  History,
-  LogOut,
-} from "lucide-react";
-
-const PRIVACY_ITEMS = [
-  {
-    q: "Data apa yang disimpan?",
-    a: "Transcript percakapan, ringkasan konsultasi, informasi gejala, penilaian kesehatan awal, foto resep, dan informasi obat.",
-    icon: Database,
-  },
-  {
-    q: "Untuk apa data ini disimpan?",
-    a: "Agar health context Anda tetap tersambung dari konsultasi awal hingga pemahaman resep, tanpa perlu mengulang cerita di setiap tahap.",
-    icon: History,
-  },
-  {
-    q: "Bagaimana status keamanannya?",
-    a: "HealthRecord dienkripsi sebelum disimpan (encrypted at rest) dan seluruh komunikasi dienkripsi saat transit.",
-    icon: Lock,
-  },
-  {
-    q: "Siapa yang dapat mengakses data saya?",
-    a: "Hanya Anda, setelah autentikasi dan authorization check. Dokter dapat melihat ringkasan hanya jika Anda membagikannya secara eksplisit.",
-    icon: Eye,
-  },
-];
+import { signOut } from "@/lib/auth/sign-out";
+import { ShieldCheck, LogOut, ArrowRight } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -61,8 +25,7 @@ export default function ProfilePage() {
   const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.push("/");
     router.refresh();
   }
@@ -96,30 +59,20 @@ export default function ProfilePage() {
 
       <div id="privacy" className="scroll-mt-24">
         <Card>
-          <CardContent>
-            <div className="mb-4 flex items-center gap-2">
-              <ShieldCheck className="size-5 text-primary" />
+          <CardContent className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="size-5 shrink-0 text-primary" />
               <div>
                 <p className="font-heading font-semibold text-foreground">Privasi &amp; Keamanan</p>
                 <p className="text-xs text-muted-foreground">
-                  Transparansi mengenai bagaimana data kesehatan Anda diperlakukan.
+                  Lihat status keamanan data Anda, unduh salinannya, atau hapus seluruhnya.
                 </p>
               </div>
             </div>
-            <Separator className="mb-2" />
-            <Accordion>
-              {PRIVACY_ITEMS.map((item) => (
-                <AccordionItem key={item.q} value={item.q}>
-                  <AccordionTrigger>
-                    <span className="flex items-center gap-2">
-                      <item.icon className="size-4 text-primary" />
-                      {item.q}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>{item.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <Button variant="outline" size="sm" render={<Link href="/privacy" />}>
+              Buka
+              <ArrowRight className="size-3.5" />
+            </Button>
           </CardContent>
         </Card>
       </div>

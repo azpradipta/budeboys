@@ -142,10 +142,7 @@ export default function Home() {
           <div className="mt-10 flex justify-center">
             <JourneyStepper active="understand" />
           </div>
-          <p className="mx-auto mt-6 max-w-2xl text-sm text-muted-foreground">
-            Cerita → Health Context → Evidence → Understanding → Secure Health Record → Dokter →
-            Validation → Resep → Understanding.
-          </p>
+
         </div>
       </section>
 
