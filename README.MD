@@ -25,3 +25,29 @@ Menerima resep
         ↓
 Mencari tahu sendiri obatnya
 ```
+
+---
+
+## Menjalankan
+
+```bash
+npm install
+cp .env.example .env.local   # isi kredensial Supabase, Healthify, OpenAI
+npm run dev
+```
+
+Semua integrasi eksternal punya fallback lokal, jadi aplikasi tetap jalan
+walau Healthify atau OpenAI belum dikonfigurasi.
+
+## Dokumentasi API
+
+Spesifikasi OpenAPI 3.1 didefinisikan di [`lib/openapi.ts`](lib/openapi.ts)
+dan disajikan lewat dua endpoint:
+
+| Endpoint       | Isi                                              |
+| -------------- | ------------------------------------------------ |
+| `/docs`        | Referensi API interaktif (Scalar)                |
+| `/api/openapi` | Dokumen OpenAPI mentah dalam JSON                |
+
+Menambah atau mengubah endpoint berarti memperbarui `lib/openapi.ts` juga,
+karena spec ditulis manual dan tidak di-generate dari kode.

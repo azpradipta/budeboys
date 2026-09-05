@@ -11,10 +11,9 @@ import { conditionOf, CONDITION_KIND_LABEL } from "@/lib/consultation-condition"
 import { Pill, ChevronRight, MessageCircle } from "lucide-react";
 
 /**
- * "Resep" — the medicines from each consultation. Cards match the Riwayat
- * Konsultasi style, but here a click goes straight to the medicine
- * descriptions (on Riwayat it opens the consultation detail). Each card
- * also says which consultation the medicine came from.
+ * Daftar obat dari tiap konsultasi. Gaya kartunya mengikuti Riwayat
+ * Konsultasi, bedanya klik di sini langsung membuka deskripsi obat, dan
+ * tiap kartu menyebut konsultasi asalnya.
  */
 export default function PrescriptionsPage() {
   const records = usePrescriptions();

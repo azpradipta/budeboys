@@ -26,7 +26,7 @@ export default function ConsultationHistoryPage() {
     <div className="mx-auto max-w-4xl px-6 py-14">
       <PageHeader
         title="Riwayat Konsultasi"
-        description="Semua sesi konsultasi Anda — tiap sesi merangkum tiga fase perjalanannya: konsultasi AI, validasi dokter, dan pemahaman resep."
+        description="Semua sesi konsultasi Anda. Tiap sesi merangkum tiga fase perjalanannya: konsultasi AI, validasi dokter, dan pemahaman resep."
         actions={
           <Button render={<Link href="/consultations" />}>
             <Plus className="size-4" />

@@ -18,9 +18,8 @@ import {
 import type { ConsultationSession, HealthContext } from "@/lib/types";
 import { Mic, Square, Send, PhoneOff, Keyboard, VolumeX, Clock } from "lucide-react";
 
-/** Calls our own /api/consultation/turn (real Healthify, with a local
- * rule-based fallback baked in server-side — see lib/health-ai.ts). Only
- * degrades further here if our own server is unreachable entirely. */
+/** Memanggil /api/consultation/turn, yang sudah punya fallback sendiri di
+ * server. Penanganan di sini hanya untuk kasus server kita tak terjangkau. */
 async function fetchTurn(
   query: string,
   sessionId: string,
@@ -45,7 +44,7 @@ async function fetchTurn(
     // fall through to the degenerate fallback below
   }
   return {
-    text: "Maaf, saya tidak bisa memproses itu sekarang — koneksi ke server bermasalah. Coba lagi sesaat lagi.",
+    text: "Maaf, saya tidak bisa memproses itu sekarang karena koneksi ke server bermasalah. Coba lagi sesaat lagi.",
     intent: "NON_MEDICAL",
     evidence: [],
     risk: "LOW_RISK",
@@ -88,16 +87,16 @@ export function LiveConsultation({
     if (!text.trim() || processingRef.current || endedRef.current) return;
     processingRef.current = true;
 
-    // Half-duplex: mic OFF and any previous TTS killed before we think or
-    // speak — otherwise the answer coming out of the laptop speakers gets
-    // transcribed straight back in as a new "question" (feedback loop).
+    // Half-duplex: mic dimatikan dan TTS sebelumnya dihentikan dulu. Kalau
+    // tidak, suara jawaban dari speaker ikut tertranskrip jadi pertanyaan
+    // baru (feedback loop).
     stopEverything();
 
     const hasPriorContext = session.messages.some((m) => m.role === "user");
     const userMessage = createMessage("user", text.trim());
 
-    // Social turns ("terima kasih", "oke", "halo") — reply naturally,
-    // instantly, no server call, no evidence. Keeps the chat two-way.
+    // Basa-basi dijawab seketika di klien, tanpa panggilan server maupun
+    // evidence.
     const social = detectSmallTalk(text);
     if (social) {
       const reply = smallTalkReply(social);
@@ -154,9 +153,9 @@ export function LiveConsultation({
       healthContext: turn.healthContext,
     });
 
-    // Speak only in voice mode, with the mic still off. No auto-restart —
-    // the user taps the mic again for their next turn (push-to-talk per
-    // turn), which keeps the feedback loop permanently impossible.
+    // Hanya bersuara di mode voice, mic tetap mati. Tidak ada auto-restart:
+    // pengguna menekan mic lagi untuk giliran berikutnya, sehingga feedback
+    // loop mustahil terjadi.
     if (!useTextMode) {
       setAiSpeaking(true);
       speak(turn.text, { onEnd: () => setAiSpeaking(false) });
@@ -248,7 +247,7 @@ export function LiveConsultation({
                 {pending
                   ? "Menyusun jawaban…"
                   : aiSpeaking
-                    ? "AI sedang menjawab — ketuk mic untuk menyela"
+                    ? "AI sedang menjawab, ketuk mic untuk menyela"
                     : listening
                       ? "Mendengarkan… tekan untuk berhenti"
                       : "Tekan untuk berbicara"}
@@ -301,7 +300,7 @@ export function LiveConsultation({
           )}
           {!supported && (
             <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              Speech recognition tidak didukung browser ini — gunakan input teks.
+              Speech recognition tidak didukung browser ini, gunakan input teks.
             </p>
           )}
         </div>

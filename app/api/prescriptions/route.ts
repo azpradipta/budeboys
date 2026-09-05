@@ -3,9 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptFromStorage, encryptForStorage } from "@/lib/server/crypto";
 import type { PrescriptionRecord, StoredPrescriptionRecord } from "@/lib/types";
 
-/** The server never stores the raw prescription image — only the OCR'd
- * structured fields. Always add back `imageDataUrl: null` for the client's
- * PrescriptionRecord shape. */
+/** Server tidak pernah menyimpan gambar resep, hanya field hasil OCR.
+ * `imageDataUrl: null` dikembalikan agar bentuknya cocok dengan
+ * PrescriptionRecord di klien. */
 function toClientShape(record: StoredPrescriptionRecord): PrescriptionRecord {
   return { ...record, imageDataUrl: null };
 }
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { imageDataUrl, ...toStore } = body;
-  void imageDataUrl; // never persisted server-side — raw image stays client-only
+  void imageDataUrl; // tidak pernah disimpan, gambar tetap di sisi klien
 
   const { data, error } = await supabase
     .from("prescriptions")

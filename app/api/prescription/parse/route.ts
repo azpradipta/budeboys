@@ -3,9 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parsePrescriptionWithLLM } from "@/lib/server/prescription-parser";
 import { parsePrescriptionText } from "@/lib/prescription-ai";
 
-/** Raw OCR text → structured prescription items. LLM does the parsing
- * (see lib/server/prescription-parser.ts); falls back to a rule-based
- * parser when OpenAI is unavailable. Text only — no image involved. */
+/** Teks mentah OCR menjadi item resep terstruktur. Parsing dikerjakan LLM,
+ * dengan fallback parser berbasis aturan saat OpenAI tidak tersedia. Hanya
+ * teks, tidak ada gambar yang terlibat. */
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const {

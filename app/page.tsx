@@ -51,7 +51,7 @@ const principles = [
   {
     icon: BadgeCheck,
     title: "AI Bukan Otoritas Klinis Final",
-    desc: "Sistem hanya memberi informasi & assessment awal — diagnosis tetap oleh tenaga kesehatan.",
+    desc: "Sistem hanya memberi informasi dan assessment awal. Diagnosis tetap oleh tenaga kesehatan.",
   },
   {
     icon: BookMarked,
@@ -177,7 +177,7 @@ export default function Home() {
             Siap ceritakan keluhan Anda?
           </h2>
           <p className="max-w-xl text-muted-foreground">
-            Mulai konsultasi suara sekarang — informasi Anda tersimpan aman dan siap dibawa ke
+            Mulai konsultasi suara sekarang. Informasi Anda tersimpan aman dan siap dibawa ke
             dokter.
           </p>
           <Button size="lg" render={<Link href="/consultations" />}>

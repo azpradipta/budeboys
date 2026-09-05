@@ -26,7 +26,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Healthalk",
-  description: "AI-assisted healthcare journey — from symptoms to treatment.",
+  description: "Perjalanan kesehatan berbantuan AI, dari keluhan hingga pengobatan.",
 };
 
 export default function RootLayout({

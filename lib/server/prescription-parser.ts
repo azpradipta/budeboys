@@ -1,14 +1,13 @@
 import { field, genId, type PrescriptionItem } from "@/lib/types";
 
 /**
- * Turns the raw OCR transcription of a prescription into structured items
- * using OpenAI. This is the job the regex heuristics kept getting wrong —
- * an LLM reads messy Latin rx shorthand ("R/", "S 3 dd 1", "a.c", "no. X")
- * and handwriting-garbled text far better.
+ * Mengubah teks mentah OCR menjadi item resep terstruktur. LLM jauh lebih
+ * baik membaca singkatan Latin ("R/", "S 3 dd 1", "a.c", "no. X") dan hasil
+ * OCR tulisan tangan yang berantakan dibanding heuristik regex.
  *
- * Only the TEXT is sent to OpenAI — the image never leaves the client.
- * Server-only (OPENAI_API_KEY). Returns `null` on any failure so the caller
- * falls back to the rule-based parser.
+ * Hanya teksnya yang dikirim; gambar tidak pernah keluar dari perangkat.
+ * Butuh OPENAI_API_KEY. Mengembalikan null bila gagal agar pemanggil
+ * fallback ke parser berbasis aturan.
  */
 
 const BASE_URL = "https://api.openai.com/v1";
@@ -24,7 +23,7 @@ Kenali pola resep: "R/" menandai satu obat; "S" atau "s" = signa (aturan pakai);
 ATURAN:
 - Ekstrak HANYA yang ada di teks. Jangan mengarang. Kalau sebuah field tidak terbaca, isi "Tidak terbaca" dan confidence rendah.
 - Boleh ada lebih dari satu obat.
-- Jangan menilai/mengoreksi dosis dokter — salin apa adanya.
+- Jangan menilai atau mengoreksi dosis dokter, salin apa adanya.
 - Bahasa Indonesia untuk label rute & aturan pakai (mis. "Oral", "Sublingual", "Sebelum makan", "3x1").
 
 Jawab HANYA JSON:
@@ -66,7 +65,7 @@ export async function parsePrescriptionWithLLM(
   rawText: string
 ): Promise<PrescriptionItem[] | null> {
   if (!isConfigured()) {
-    console.warn("[openai] OPENAI_API_KEY not set — prescription parse uses rule-based fallback.");
+    console.warn("[openai] OPENAI_API_KEY not set, prescription parse uses rule-based fallback.");
     return null;
   }
   if (!rawText.trim()) return [];
@@ -96,7 +95,7 @@ export async function parsePrescriptionWithLLM(
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
       console.warn(
-        `[openai] prescription parse ${res.status} ${res.statusText} — using rule-based fallback. ${detail.slice(0, 300)}`
+        `[openai] prescription parse ${res.status} ${res.statusText}, using rule-based fallback. ${detail.slice(0, 300)}`
       );
       return null;
     }
@@ -122,7 +121,7 @@ export async function parsePrescriptionWithLLM(
     console.warn(
       `[openai] prescription parse failed (${
         err instanceof Error ? err.message : String(err)
-      }) — using rule-based fallback.`
+      }), using rule-based fallback.`
     );
     return null;
   } finally {

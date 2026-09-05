@@ -1,16 +1,10 @@
 /**
- * Client for the real Healthify Intelligence API — the teammate-built RAG +
- * conversation engine (https://healthify.twenti.studio/docs). This covers
- * everything docs/prd.md Section 9-24 describes as the Conversation
- * Intelligence + Health Evidence Engine: intent understanding, health
- * context extraction, literature retrieval with verified DOIs, answer
- * composition, and the safety layer — all server-side, in one call.
+ * Client Healthify Intelligence API (https://healthify.twenti.studio/docs):
+ * intent, ekstraksi konteks, retrieval literatur ber-DOI, penyusunan jawaban,
+ * dan safety check dalam satu panggilan.
  *
- * Server-only (needs HEALTHIFY_API_KEY, never exposed to the browser).
- * Every function here returns `null` instead of throwing when the service
- * is unconfigured, unreachable, rate-limited, or errors — callers fall back
- * to the local rule-based logic in lib/health-ai.ts so a consultation can
- * still be completed end-to-end either way (PRD Section 49 Availability).
+ * Butuh HEALTHIFY_API_KEY. Mengembalikan null (bukan throw) agar pemanggil
+ * bisa fallback ke lib/health-ai.ts.
  */
 
 const BASE_URL = (process.env.HEALTHIFY_API_BASE_URL || "https://healthify.twenti.studio").replace(
@@ -75,9 +69,8 @@ export interface HealthifyQueryResult {
   request_id?: string | null;
 }
 
-/** One turn of the consultation. `sessionId` is our own consultation id,
- * reused as Healthify's `session_id` — it creates/continues the session
- * lazily, no separate "create session" call needed. */
+/** Satu giliran percakapan. Id konsultasi kita dipakai langsung sebagai
+ * `session_id` Healthify, yang dibuat atau dilanjutkan otomatis. */
 export async function queryHealthify(params: {
   query: string;
   sessionId: string;
@@ -85,15 +78,15 @@ export async function queryHealthify(params: {
 }): Promise<HealthifyQueryResult | null> {
   if (!isConfigured()) {
     console.warn(
-      "[healthify] HEALTHIFY_API_KEY not set — using local fallback. " +
+      "[healthify] HEALTHIFY_API_KEY not set, using local fallback. " +
         "Add it to .env.local and restart `npm run dev`."
     );
     return null;
   }
 
   const controller = new AbortController();
-  // Healthify docs recommend a client timeout of at least 30s (typical
-  // response 2-10s, but retrieval + DOI verification + LLM can spike).
+  // Healthify meminta timeout minimal 30 detik. Respons normal 2-10 detik,
+  // tapi retrieval, verifikasi DOI, dan LLM bisa jauh lebih lama.
   const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
@@ -117,7 +110,7 @@ export async function queryHealthify(params: {
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
       console.warn(
-        `[healthify] query ${res.status} ${res.statusText} — using local fallback. ${detail.slice(0, 300)}`
+        `[healthify] query ${res.status} ${res.statusText}, using local fallback. ${detail.slice(0, 300)}`
       );
       return null;
     }
@@ -126,7 +119,7 @@ export async function queryHealthify(params: {
     console.warn(
       `[healthify] query request failed (${
         err instanceof Error ? err.message : String(err)
-      }) — using local fallback.`
+      }), using local fallback.`
     );
     return null;
   } finally {
@@ -171,7 +164,7 @@ export async function summarizeHealthifySession(
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
       console.warn(
-        `[healthify] summary ${res.status} ${res.statusText} — using local fallback. ${detail.slice(0, 300)}`
+        `[healthify] summary ${res.status} ${res.statusText}, using local fallback. ${detail.slice(0, 300)}`
       );
       return null;
     }
@@ -181,7 +174,7 @@ export async function summarizeHealthifySession(
     console.warn(
       `[healthify] summary request failed (${
         err instanceof Error ? err.message : String(err)
-      }) — using local fallback.`
+      }), using local fallback.`
     );
     return null;
   }

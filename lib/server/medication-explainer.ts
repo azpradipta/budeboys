@@ -1,14 +1,12 @@
 import type { MedicationInfo } from "@/lib/types";
 
 /**
- * Generates the general "medication explanation" shown after a prescription
- * is OCR'd and verified (docs/prd.md Section 40). Uses OpenAI (the team's
- * choice for this piece — not Claude). Deliberately constrained so it never
- * overclaims: general use only, no dosage advice, no "this is right for
- * your condition", no promises of results (PRD Section 40-42).
+ * Menjelaskan obat setelah resep diverifikasi. Sengaja dibatasi: hanya
+ * kegunaan umum, tanpa saran dosis, tanpa klaim cocok untuk kondisi
+ * pengguna, tanpa janji hasil.
  *
- * Server-only (needs OPENAI_API_KEY). Returns `null` on any failure so the
- * caller falls back to the local drug KB (lib/kb.ts).
+ * Butuh OPENAI_API_KEY. Mengembalikan null bila gagal agar pemanggil
+ * fallback ke drug KB lokal di lib/kb.ts.
  */
 
 const BASE_URL = "https://api.openai.com/v1";
@@ -17,7 +15,7 @@ function isConfigured(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
-const SYSTEM_PROMPT = `Anda menjelaskan informasi UMUM tentang obat kepada pasien awam berbahasa Indonesia, untuk fitur "pemahaman resep" — BUKAN untuk meresepkan.
+const SYSTEM_PROMPT = `Anda menjelaskan informasi UMUM tentang obat kepada pasien awam berbahasa Indonesia, untuk fitur "pemahaman resep", BUKAN untuk meresepkan.
 
 ATURAN KETAT (keselamatan medis):
 - Hanya informasi umum yang berlaku luas untuk obat/golongan tersebut. JANGAN mengklaim obat ini pasti cocok, aman, atau efektif untuk kondisi pengguna.
@@ -52,7 +50,7 @@ export async function explainMedication(input: {
   instruction: string;
 }): Promise<MedicationInfo | null> {
   if (!isConfigured()) {
-    console.warn("[openai] OPENAI_API_KEY not set — medication explanation uses local KB fallback.");
+    console.warn("[openai] OPENAI_API_KEY not set, medication explanation uses local KB fallback.");
     return null;
   }
 
@@ -81,7 +79,7 @@ export async function explainMedication(input: {
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `Obat: ${input.name}. Yang tertulis di resep — kekuatan: ${input.strength}, frekuensi: ${input.frequency}, rute: ${input.route}, aturan pakai: ${input.instruction}. Jelaskan informasi umum obat ini.`,
+            content: `Obat: ${input.name}. Yang tertulis di resep, kekuatan: ${input.strength}, frekuensi: ${input.frequency}, rute: ${input.route}, aturan pakai: ${input.instruction}. Jelaskan informasi umum obat ini.`,
           },
         ],
       }),
@@ -91,7 +89,7 @@ export async function explainMedication(input: {
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
       console.warn(
-        `[openai] medication explain ${res.status} ${res.statusText} — using local KB fallback. ${detail.slice(0, 300)}`
+        `[openai] medication explain ${res.status} ${res.statusText}, using local KB fallback. ${detail.slice(0, 300)}`
       );
       return null;
     }
@@ -109,7 +107,7 @@ export async function explainMedication(input: {
         how_it_works: "",
         ...written,
         important_general_information: [
-          "MEDICATION_MATCH_FAILED — pastikan nama obat sudah benar dari hasil verifikasi.",
+          "MEDICATION_MATCH_FAILED: pastikan nama obat sudah benar dari hasil verifikasi.",
         ],
         matched: false,
         source: "unmatched",
@@ -132,7 +130,7 @@ export async function explainMedication(input: {
     console.warn(
       `[openai] medication explain failed (${
         err instanceof Error ? err.message : String(err)
-      }) — using local KB fallback.`
+      }), using local KB fallback.`
     );
     return null;
   } finally {

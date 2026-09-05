@@ -1,20 +1,19 @@
--- Run this once in the Supabase SQL Editor (Dashboard → SQL Editor → New query).
+-- Jalankan sekali di Supabase SQL Editor (Dashboard, SQL Editor, New query).
 --
--- Storage strategy: each row keeps its full app-level object as JSONB in
--- `data` (matching lib/types.ts's ConsultationSession / StoredPrescriptionRecord
--- shapes exactly), with a few columns pulled out for indexing, ownership,
--- and Row Level Security. This means the API routes barely change shape —
--- they read/write the same JSON they always did, just via Postgres now.
+-- Strategi penyimpanan: tiap baris menyimpan objek aplikasinya utuh sebagai
+-- JSONB di kolom `data`, mengikuti bentuk ConsultationSession dan
+-- StoredPrescriptionRecord di lib/types.ts. Beberapa kolom dikeluarkan
+-- terpisah untuk indexing, kepemilikan, dan Row Level Security.
 --
--- RLS is the real enforcement layer: even if application code had a bug and
--- forgot to filter by user, Postgres itself refuses to return or write rows
--- that don't belong to the requesting user (auth.uid()).
+-- RLS adalah lapisan penegak sesungguhnya: sekalipun kode aplikasi lupa
+-- memfilter per user, Postgres tetap menolak membaca atau menulis baris yang
+-- bukan milik pemanggil (auth.uid()).
 --
--- Encryption at rest: when APP_ENCRYPTION_KEY is set, the `data` column does
--- NOT hold readable JSON — it holds an AES-256-GCM envelope
--- ({ __enc, iv, tag, ct }) produced by lib/server/crypto.ts and bound to the
--- row's user_id. The API routes encrypt on write / decrypt on read, so the
--- app still sees the same shapes; only the bytes in Postgres are ciphertext.
+-- Enkripsi at rest: bila APP_ENCRYPTION_KEY diisi, kolom `data` tidak berisi
+-- JSON terbaca, melainkan envelope AES-256-GCM ({ __enc, iv, tag, ct }) dari
+-- lib/server/crypto.ts yang terikat pada user_id barisnya. Route API
+-- mengenkripsi saat menulis dan mendekripsi saat membaca, jadi aplikasi tetap
+-- melihat bentuk yang sama.
 
 create table if not exists public.consultations (
   id text primary key,

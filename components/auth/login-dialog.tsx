@@ -47,7 +47,7 @@ export function LoginDialog({
       setError(authError.message);
     }
     // On success the browser is redirected to Google, so no further state
-    // update happens here — this component unmounts along the way.
+    // update di sini, komponen ini keburu unmount.
   }
 
   return (
@@ -64,7 +64,7 @@ export function LoginDialog({
           <Alert variant="destructive">
             <CircleAlert className="size-4" />
             <AlertDescription>
-              Supabase belum dikonfigurasi — isi <code>NEXT_PUBLIC_SUPABASE_URL</code> dan{" "}
+              Supabase belum dikonfigurasi. Isi <code>NEXT_PUBLIC_SUPABASE_URL</code> dan{" "}
               <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> di <code>.env.local</code> dulu (lihat{" "}
               <code>.env.example</code>), lalu restart dev server.
             </AlertDescription>
@@ -90,7 +90,7 @@ export function LoginDialog({
 
             <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <ShieldCheck className="size-3.5 shrink-0 text-primary" />
-              Kami hanya menggunakan akun Google Anda untuk identifikasi — data kesehatan Anda
+              Kami hanya menggunakan akun Google Anda untuk identifikasi. Data kesehatan Anda
               tetap terpisah dan terenkripsi.
             </p>
           </>

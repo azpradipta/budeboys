@@ -4,14 +4,11 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { ConsultationSession, PrescriptionRecord } from "./types";
 
 /**
- * Client-side data layer backed by the API routes under app/api/ (which in
- * turn persist to lib/server/db.ts — docs/prd.md Section 55 Core API
- * Contracts / Section 56 Data Entities).
+ * Lapisan data sisi klien di atas route di app/api/.
  *
- * Each collection keeps an in-memory cache so reads can stay synchronous
- * (required by useSyncExternalStore) while fetches happen in the
- * background. Writes update the cache optimistically first so the UI never
- * waits on the network, then reconcile with the server's response.
+ * Tiap koleksi punya cache in-memory supaya pembacaan tetap sinkron, syarat
+ * useSyncExternalStore, sementara fetch berjalan di belakang. Penulisan masuk
+ * ke cache dulu (optimistic) lalu disesuaikan dengan respons server.
  */
 
 interface Identifiable {
@@ -57,10 +54,8 @@ class ApiListStore<T extends Identifiable> {
     return this.notFound.has(id) ? null : undefined;
   };
 
-  /** Kick off (at most once until it resolves) a background fetch of the
-   * full collection. Safe to call from an effect — it never calls a React
-   * setState directly, only mutates this external cache and notifies
-   * subscribers, which is exactly what useSyncExternalStore expects. */
+  /** Mengambil seluruh koleksi sekali. Aman dipanggil dari effect karena
+   * hanya mengubah cache dan memberi tahu subscriber, bukan setState. */
   preloadList() {
     if (this.cache !== null || this.listInFlight) return;
     this.listInFlight = true;
@@ -73,9 +68,8 @@ class ApiListStore<T extends Identifiable> {
       });
   }
 
-  /** Kick off a background fetch for a single item — used when a detail
-   * page is opened before the full list has loaded (e.g. direct link,
-   * fresh reload). */
+  /** Mengambil satu item, untuk halaman detail yang dibuka sebelum list
+   * termuat (tautan langsung atau reload). */
   preloadOne(id: string) {
     if (this.cache?.some((item) => item.id === id)) return;
     if (this.notFound.has(id) || this.itemsInFlight.has(id)) return;
@@ -98,7 +92,7 @@ class ApiListStore<T extends Identifiable> {
 
   async save(item: T): Promise<T> {
     const exists = this.cache?.some((i) => i.id === item.id);
-    this.upsertLocal(item); // optimistic — UI updates instantly
+    this.upsertLocal(item); // optimistic, UI langsung ter-update
 
     try {
       const res = await fetch(exists ? `${this.basePath}/${item.id}` : this.basePath, {
@@ -112,7 +106,7 @@ class ApiListStore<T extends Identifiable> {
         return saved;
       }
     } catch {
-      // offline/network error — keep the optimistic local value
+      // Offline atau gagal jaringan, pertahankan nilai optimistic lokal.
     }
     return item;
   }
@@ -134,8 +128,8 @@ export function useConsultationSessions(): ConsultationSession[] {
   );
 }
 
-/** undefined = not yet resolved, null = confirmed not found on the server.
- * An empty `id` is a no-op (callers can pass "" before the real id loads). */
+/** undefined selama belum terjawab, null bila server memastikan id tidak
+ * ada. Id kosong diabaikan, jadi pemanggil boleh mengirim "" dulu. */
 export function useConsultationSession(id: string): ConsultationSession | null | undefined {
   useEffect(() => {
     if (id) sessionStore.preloadOne(id);
@@ -172,8 +166,7 @@ export function usePrescription(id: string): PrescriptionRecord | null | undefin
   return useSyncExternalStore(prescriptionStore.subscribe, getSnapshot, () => undefined);
 }
 
-/** Prescriptions can only ever be created from within a consultation
- * (Phase 3) — this is how that consultation's detail page lists its own. */
+/** Sumber data daftar resep di halaman detail konsultasi. */
 export function usePrescriptionsForConsultation(consultationId: string): PrescriptionRecord[] {
   const all = usePrescriptions();
   return all.filter((p) => p.consultationId === consultationId);

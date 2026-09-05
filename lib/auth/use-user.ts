@@ -9,8 +9,8 @@ export function useUser(): User | null | undefined {
   const [user, setUser] = useState<User | null | undefined>(undefined);
 
   useEffect(() => {
-    // Supabase not configured yet (see .env.example) — treat as signed out
-    // rather than throwing on every page that renders <Navbar>.
+    // Tanpa konfigurasi Supabase, anggap belum login daripada melempar
+    // error di setiap halaman yang merender <Navbar>.
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       Promise.resolve().then(() => setUser(null));
       return;

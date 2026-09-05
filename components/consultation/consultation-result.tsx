@@ -21,8 +21,8 @@ import { formatDuration } from "@/lib/format";
 import type { ConsultationSession, DoctorValidation } from "@/lib/types";
 import { CheckCircle2, ShieldCheck, Share2, AlertTriangle, Clock } from "lucide-react";
 
-/** Treat these as "the user didn't actually say this" — hide the field
- * rather than showing a bare "unknown". */
+/** Nilai-nilai ini berarti pengguna tidak menyebutkannya, jadi fieldnya
+ * disembunyikan alih-alih menampilkan "unknown". */
 function isBlank(value: string | null | undefined): boolean {
   if (!value) return true;
   const t = value.trim().toLowerCase();
@@ -81,7 +81,7 @@ export function ConsultationResult({
                         new Date(session.completedAt).getTime() -
                           new Date(session.createdAt).getTime()
                       )
-                    : "—"}
+                    : "-"}
                 </strong>
               </span>
               <span>
@@ -158,7 +158,7 @@ export function ConsultationResult({
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <ShieldCheck className="size-3.5 text-primary" />
-                {session.encrypted ? "Secure Record — tersimpan terenkripsi" : "Belum diamankan"}
+                {session.encrypted ? "Secure Record, tersimpan terenkripsi" : "Belum diamankan"}
               </div>
 
               <Dialog open={shareOpen} onOpenChange={setShareOpen}>

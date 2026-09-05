@@ -48,7 +48,7 @@ export async function PUT(
   }
 
   const { imageDataUrl, ...toStore } = body;
-  void imageDataUrl; // never persisted server-side — raw image stays client-only
+  void imageDataUrl; // tidak pernah disimpan, gambar tetap di sisi klien
 
   const { data, error } = await supabase
     .from("prescriptions")

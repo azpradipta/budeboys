@@ -12,16 +12,9 @@ import {
 import { detectEmergency, searchEvidence } from "./kb";
 
 /**
- * Local, rule-based fallback for the Conversation Intelligence + Health
- * Evidence Engine (docs/prd.md Section 9-24). The real implementation is
- * the team's Healthify Intelligence API (see lib/server/healthify-client.ts),
- * called from app/api/consultation/turn and app/api/consultation/summary —
- * those routes fall back to the functions in this file whenever Healthify
- * is unconfigured, unreachable, or errors, so a consultation can still be
- * completed end-to-end either way (PRD Section 49 Availability).
- *
- * Everything here is plain, isomorphic TS (no browser or Node-only APIs),
- * safe to import from a route handler or, historically, from client code.
+ * Fallback berbasis aturan untuk mesin percakapan. Route konsultasi memanggil
+ * Healthify dulu, lalu turun ke fungsi-fungsi di sini bila Healthify tidak
+ * dikonfigurasi atau gagal, sehingga konsultasi selalu bisa diselesaikan.
  */
 
 const SYMPTOM_KEYWORDS = [
@@ -45,7 +38,7 @@ const SYMPTOM_KEYWORDS = [
 const MEDICATION_KEYWORDS = ["obat", "minum obat", "dosis", "resep"];
 const QUESTION_MARKERS = ["apa", "kenapa", "bagaimana", "apakah", "berapa", "kapan", "?"];
 
-export function classifyIntent(text: string, hasPriorContext: boolean): UtteranceIntent {
+function classifyIntent(text: string, hasPriorContext: boolean): UtteranceIntent {
   const t = text.toLowerCase();
 
   if (detectEmergency(t)) return "EMERGENCY_SIGNAL";
@@ -88,10 +81,9 @@ const SMALLTALK_PATTERNS: { kind: SmallTalkKind; re: RegExp }[] = [
   },
 ];
 
-/** Detects social / non-substantive turns ("terima kasih", "oke", "halo")
- * so the assistant replies naturally without running the whole
- * evidence-retrieval pipeline — the conversation stays two-way and evidence
- * only appears when the user actually asks or describes something. */
+/** Sapaan dan basa-basi ("terima kasih", "oke", "halo") dijawab langsung
+ * tanpa evidence retrieval, jadi sitasi hanya muncul saat benar-benar
+ * ditanya. */
 export function detectSmallTalk(text: string): SmallTalkKind | null {
   const t = text.trim().toLowerCase();
   if (!t || t.length > 48) return null;
@@ -117,7 +109,7 @@ export function smallTalkReply(kind: SmallTalkKind): string {
 const DURATION_RE =
   /((?:\d+\s*|se\s*|beberapa\s+)(?:hari|minggu|bulan|tahun|jam)(?:an)?|sebulanan|semingguan|seharian|setahunan)/i;
 
-/** Rough conversion of a free-text Indonesian duration to days. */
+/** Konversi kasar durasi teks bebas ke satuan hari. */
 function parseDurationDays(duration: string | null): number | null {
   if (!duration) return null;
   const t = duration.toLowerCase();
@@ -137,9 +129,8 @@ function parseDurationDays(duration: string | null): number | null {
   return null;
 }
 
-/** Symptoms lasting ~3 weeks or more are past the "acute, self-limiting"
- * window — they warrant an in-person evaluation regardless of what a
- * generic KB snippet about acute illness says. */
+/** Lewat sekitar tiga minggu, keluhan tidak lagi tergolong akut, jadi perlu
+ * pemeriksaan langsung apa pun isi snippet evidence-nya. */
 function isChronic(duration: string | null): boolean {
   const days = parseDurationDays(duration);
   return days !== null && days >= 21;
@@ -148,9 +139,9 @@ function isChronic(duration: string | null): boolean {
 const CAPABILITY_RE =
   /\b(bisa (bantu|membantu|nolong|menolong)|kamu (bisa|dapat|mampu)|apa (fungsi|kegunaan|guna|bisa)|kamu (siapa|apa|itu apa)|cara (kerja|pakai|kerjanya))\b/;
 
-/** Naive NLP extraction — merges new utterance info into existing context
- * without ever overwriting a known field with a guess (PRD 4.4). */
-export function extractHealthContext(
+/** Menggabungkan ucapan baru ke konteks berjalan. Field yang sudah terisi
+ * tidak pernah ditimpa oleh tebakan baru. */
+function extractHealthContext(
   context: HealthContext,
   utterance: string
 ): HealthContext {
@@ -176,7 +167,7 @@ export function extractHealthContext(
   }
 
   const durationMatch = t.match(DURATION_RE);
-  // "berusia 5 tahun" is an age, not a symptom duration.
+  // "berusia 5 tahun" itu umur, bukan durasi keluhan.
   const looksLikeAge =
     /\b(usia|umur|berusia|umurnya|usianya)\b/.test(t) &&
     /tahun/.test(durationMatch?.[0] ?? "");
@@ -204,7 +195,7 @@ export function extractHealthContext(
   return next;
 }
 
-export function safetyCheck(text: string): {
+function safetyCheck(text: string): {
   risk: RiskLevel;
   action: "PASS" | "MODIFY" | "BLOCK";
 } {
@@ -220,15 +211,13 @@ export interface AssistantTurn {
   evidence: EvidenceReference[];
   risk: RiskLevel;
   insufficientEvidence: boolean;
-  /** The health context after folding in this utterance. */
+  /** Konteks kesehatan setelah ucapan ini digabungkan. */
   healthContext: HealthContext;
 }
 
-/** Fallback turn generator — used by app/api/consultation/turn when
- * Healthify is unconfigured/unreachable. It's a rule-based safety net, not
- * a substitute for the real engine: it avoids repeating itself, doesn't
- * re-ask for info it already has, and escalates persistent symptoms rather
- * than parroting "acute illness resolves in 1-3 weeks". */
+/** Pengaman untuk app/api/consultation/turn: tidak mengulang sitasi
+ * sebelumnya, tidak menanyakan hal yang sudah dijawab, dan meng-escalate
+ * keluhan yang menetap. */
 export function generateLocalTurn(
   utterance: string,
   context: HealthContext,
@@ -248,18 +237,18 @@ export function generateLocalTurn(
       risk: "EMERGENCY_SIGNAL",
       evidence: [],
       insufficientEvidence: false,
-      text: "Ini terdengar seperti kondisi darurat. Saya tidak bisa memastikan kondisi Anda dari percakapan ini — mohon segera hubungi layanan gawat darurat atau ke IGD terdekat sekarang.",
+      text: "Ini terdengar seperti kondisi darurat. Saya tidak bisa memastikan kondisi Anda dari percakapan ini. Mohon segera hubungi layanan gawat darurat atau ke IGD terdekat sekarang.",
     };
   }
 
-  // "apakah kamu bisa membantu…", "kamu bisa apa" — a capability question,
-  // not a health question.
+  // "kamu bisa apa", "apakah kamu bisa membantu": pertanyaan soal asisten,
+  // bukan soal keluhan.
   if (CAPABILITY_RE.test(t)) {
     return {
       ...base,
       evidence: [],
       insufficientEvidence: false,
-      text: "Bisa. Saya membantu Anda menceritakan keluhan secara terstruktur, memberi informasi kesehatan berbasis literatur, lalu menyusun ringkasan yang bisa dibawa ke dokter. Silakan mulai — apa yang Anda rasakan?",
+      text: "Bisa. Saya membantu Anda menceritakan keluhan secara terstruktur, memberi informasi kesehatan berbasis literatur, lalu menyusun ringkasan yang bisa dibawa ke dokter. Silakan mulai, apa yang Anda rasakan?",
     };
   }
 
@@ -289,20 +278,20 @@ export function generateLocalTurn(
       ...base,
       evidence: [],
       insufficientEvidence: false,
-      text: "Baik, saya catat. Boleh ceritakan lebih detail — sejak kapan, seberapa sering, dan apakah ada gejala lain yang menyertai?",
+      text: "Baik, saya catat. Boleh ceritakan lebih detail: sejak kapan, seberapa sering, dan apakah ada gejala lain yang menyertai?",
     };
   }
 
   const query = `${healthContext.chief_complaint ?? ""} ${healthContext.symptoms.join(" ")} ${utterance}`;
   const evidence = searchEvidence(query);
 
-  // Persistent symptoms — override the generic "acute" framing.
+  // Keluhan menetap mengalahkan framing "penyakit akut" yang generik.
   if (isChronic(healthContext.duration)) {
     return {
       ...base,
       evidence,
       insufficientEvidence: false,
-      text: `Keluhan yang sudah berlangsung ${healthContext.duration} termasuk menetap dan sudah melewati rentang pemulihan yang biasa. Kondisi seperti ini sebaiknya diperiksakan langsung ke dokter untuk pemeriksaan fisik dan penunjang — terlebih bila disertai penurunan berat badan, demam berulang, sesak, atau dahak berdarah. Ini bukan diagnosis.`,
+      text: `Keluhan yang sudah berlangsung ${healthContext.duration} termasuk menetap dan sudah melewati rentang pemulihan yang biasa. Kondisi seperti ini sebaiknya diperiksakan langsung ke dokter untuk pemeriksaan fisik dan penunjang, terlebih bila disertai penurunan berat badan, demam berulang, sesak, atau dahak berdarah. Ini bukan diagnosis.`,
     };
   }
 
@@ -315,7 +304,7 @@ export function generateLocalTurn(
     };
   }
 
-  // Don't re-serve a reference we already cited — move the conversation on.
+  // Referensi ini sudah dikutip di giliran sebelumnya, jadi ganti pertanyaan.
   const alreadyCited = evidence.some((e) => lastAssistantText.includes(e.source.title));
   if (alreadyCited) {
     const nextAsk = !healthContext.duration
@@ -327,7 +316,7 @@ export function generateLocalTurn(
       ...base,
       evidence: [],
       insufficientEvidence: false,
-      text: `Poin itu sudah tercakup di referensi yang saya sampaikan sebelumnya. Untuk menilai lebih lanjut — ${nextAsk}`,
+      text: `Poin itu sudah tercakup di referensi yang saya sampaikan sebelumnya. Untuk menilai lebih lanjut, ${nextAsk}`,
     };
   }
 
@@ -336,7 +325,7 @@ export function generateLocalTurn(
     ...base,
     evidence,
     insufficientEvidence: false,
-    text: `${evidence[0].snippet} (${evidence[0].source.title}). Ini informasi umum, bukan diagnosis — bila ragu, tetap periksakan ke tenaga kesehatan.${ask}`,
+    text: `${evidence[0].snippet} (${evidence[0].source.title}). Ini informasi umum, bukan diagnosis. Bila ragu, tetap periksakan ke tenaga kesehatan.${ask}`,
   };
 }
 
@@ -399,7 +388,7 @@ export function generateSummary(session: ConsultationSession): ConsultationSumma
       ? "Segera cari bantuan tenaga kesehatan / layanan gawat darurat."
       : "Jadwalkan konsultasi dengan dokter untuk pemeriksaan dan diagnosis lebih lanjut, bawa ringkasan ini sebagai bahan.",
     important_warnings: hadEmergency
-      ? ["Terdapat sinyal darurat selama percakapan — prioritaskan penanganan medis segera."]
+      ? ["Terdapat sinyal darurat selama percakapan, prioritaskan penanganan medis segera."]
       : [],
     generated_at: new Date().toISOString(),
   };

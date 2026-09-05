@@ -1,16 +1,12 @@
 import type { EvidenceSource, MedicationInfo } from "./types";
 
 /**
- * Local demo knowledge base.
- *
- * This stands in for the real Evidence Retrieval + Drug Knowledge backends
- * described in docs/prd.md (Section 15-19, 41). Everything here is clearly
- * illustrative demo content, not a genuine retrieved research corpus — the
- * UI must always label it as such so no claim is presented as more certain
- * than it is (Product Principle 4.2 & 4.4).
+ * Knowledge base demo lokal, pengganti backend evidence retrieval dan drug
+ * knowledge yang sebenarnya. Isinya ilustratif, bukan korpus riset asli, dan
+ * UI wajib menandainya begitu agar tidak terkesan lebih pasti dari faktanya.
  */
 
-export const EVIDENCE_KB: (EvidenceSource & { keywords: string[] })[] = [
+const EVIDENCE_KB: (EvidenceSource & { keywords: string[] })[] = [
   {
     source_id: "demo-evid-001",
     title: "Panduan Umum: Demam pada Dewasa",
@@ -39,7 +35,7 @@ export const EVIDENCE_KB: (EvidenceSource & { keywords: string[] })[] = [
   },
   {
     source_id: "demo-evid-003",
-    title: "Ringkasan: Nyeri Perut pada Dewasa — Red Flags",
+    title: "Ringkasan: Nyeri Perut pada Dewasa dan Red Flags",
     authors: "Tim Health Intelligence (contoh)",
     publication_year: 2021,
     publisher: "Contoh Basis Pengetahuan Kesehatan",
@@ -122,7 +118,7 @@ export function searchEvidence(query: string, limit = 2) {
 }
 
 /** Local drug knowledge base (Section 41: must not rely on LLM memory alone). */
-export const DRUG_KB: Record<string, Omit<MedicationInfo, "dosage_as_written" | "frequency_as_written" | "matched">> = {
+const DRUG_KB: Record<string, Omit<MedicationInfo, "dosage_as_written" | "frequency_as_written" | "matched">> = {
   amoxicillin: {
     medicine_name: "Amoxicillin",
     general_use:

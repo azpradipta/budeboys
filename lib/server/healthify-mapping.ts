@@ -17,9 +17,8 @@ import type {
 } from "./healthify-client";
 
 /**
- * Adapters between Healthify's real API shapes and our own app types. Keep
- * all the "their field names vs ours" knowledge in one place — if Healthify
- * changes shape, this is the only file that needs updating.
+ * Adapter antara bentuk response Healthify dan tipe milik aplikasi. Kalau
+ * Healthify berubah, idealnya hanya file ini yang perlu disesuaikan.
  */
 
 const VALID_SOURCE_TYPES: SourceType[] = [
@@ -40,14 +39,14 @@ export function mapHealthifyEvidence(items: HealthifyEvidence[]): EvidenceRefere
     const source: EvidenceSource = {
       source_id: e.source_id,
       title: e.title,
-      // Healthify doesn't return authors — EvidenceList only shows this
-      // segment when non-empty.
+      // Healthify tidak mengirim authors; EvidenceList menyembunyikannya
+      // saat kosong.
       authors: "",
       publication_year: e.published_year ?? new Date().getFullYear(),
       publisher: e.publisher ?? "Unknown",
       doi: e.doi ?? "",
       abstract: e.snippet,
-      url: e.url ?? "", // null = Healthify couldn't confirm the link resolves
+      url: e.url ?? "", // null berarti Healthify gagal memverifikasi tautannya
       source_type: toSourceType(e.source_type),
     };
     return { source, snippet: e.snippet, score: e.relevance };
@@ -63,9 +62,9 @@ function toSeverity(raw: string | null): Severity {
   return "unknown";
 }
 
-/** Folds Healthify's returned context into ours. Healthify doesn't model
- * `reported_conditions`/`user_questions`, so those stay whatever we already
- * had locally — never invented, per PRD 4.4. */
+/** Menggabungkan konteks dari Healthify ke milik kita. Healthify tidak punya
+ * `reported_conditions` dan `user_questions`, jadi keduanya memakai nilai
+ * lokal, bukan dikarang. */
 export function mapHealthifyContext(
   hc: HealthifyHealthContext,
   previous: HealthContext
@@ -130,10 +129,8 @@ function pickValue<T>(field: HealthifySummaryField<T> | null | undefined, fallba
   return field?.value ?? fallback;
 }
 
-/** Maps Healthify's provenance-tagged summary onto our ConsultationSummary
- * shape (Section 26-28). We drop the per-field provenance for now — the UI
- * doesn't render it yet — but everything is namespaced here so adding a
- * provenance display later only touches this function. */
+/** Memetakan summary Healthify ke ConsultationSummary. Provenance per field
+ * dibuang karena belum ditampilkan di UI. */
 export function mapHealthifySummary(summary: HealthifySummary) {
   return {
     chief_complaint: pickValue(summary.chief_complaint, "Tidak disebutkan secara eksplisit"),
@@ -144,7 +141,7 @@ export function mapHealthifySummary(summary: HealthifySummary) {
     relevant_information: summary.relevant_information
       .map((i) => pickValue<string>(i, ""))
       .filter(Boolean),
-    questions_discussed: [] as string[], // not modeled by Healthify
+    questions_discussed: [] as string[], // tidak ada padanannya di Healthify
     ai_preliminary_assessment: pickValue(
       summary.preliminary_assessment,
       "Informasi belum cukup untuk memberikan penilaian awal."
@@ -159,8 +156,8 @@ export function mapHealthifySummary(summary: HealthifySummary) {
           publisher: "",
           doi: e.doi ?? "",
           abstract: "",
-          // Never synthesize a doi.org link ourselves — Healthify only
-          // returns a validated `url` from /query, not from /summary.
+          // Jangan mengarang tautan doi.org. `url` tervalidasi hanya ada di
+          // /query, tidak di /summary.
           url: "",
           source_type: "journal" as const,
         },

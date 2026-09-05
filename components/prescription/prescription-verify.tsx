@@ -27,12 +27,11 @@ export function PrescriptionVerify({
   items: PrescriptionItem[];
   onChangeItems: (items: PrescriptionItem[]) => void;
   onConfirmAll: () => void;
-  /** Object URL derived client-side from the transient upload File — never
-   * the record itself, which never carries the raw image (see
-   * lib/pending-image.ts). */
+  /** Object URL dari file unggahan sementara di klien, bukan dari record,
+   * yang memang tidak pernah membawa gambar. */
   previewUrl: string | null;
   retakeHref: string;
-  /** True while the medication explanation is being generated. */
+  /** True selama penjelasan obat sedang dibuat. */
   busy?: boolean;
 }) {
   function updateField(itemIdx: number, key: keyof PrescriptionItem, value: string) {

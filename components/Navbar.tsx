@@ -46,14 +46,14 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
-  // Proxy redirects unauthenticated visits to protected pages back to
-  // "/?login=1&next=<original path>" — pick that up and open the dialog.
+  // Proxy melempar kunjungan tanpa login ke "/?login=1&next=<path asal>".
+  // Tangkap parameter itu lalu buka dialog login.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("login") === "1") {
       const next = params.get("next") ?? "/consultations";
       window.history.replaceState(null, "", window.location.pathname);
-      // Deferred so this isn't a bare setState call in the effect body.
+      // Ditunda agar bukan setState langsung di badan effect.
       Promise.resolve().then(() => {
         setLoginNext(next);
         setLoginOpen(true);
@@ -73,11 +73,9 @@ export default function Navbar() {
     router.refresh();
   }
 
-  // Logged out: nothing past "/" is reachable anyway (proxy redirects it
-  // straight back to login), so the nav only offers the marketing links.
-  // Logged in: the marketing links serve no purpose (there's no landing
-  // page to browse back to — "/" itself redirects into the app), so swap
-  // them for the actual app sections instead of leaving a dead link around.
+  // Belum login: selain "/" semuanya dilempar balik oleh proxy, jadi nav
+  // hanya berisi tautan marketing. Sudah login: tautan marketing tidak
+  // berguna karena "/" pun redirect ke aplikasi, jadi diganti section asli.
   const navLinks: NavLink[] = user
     ? [
         { title: "Konsultasi", href: "/consultations" },
