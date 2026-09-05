@@ -22,6 +22,7 @@ export function PrescriptionVerify({
   onConfirmAll,
   previewUrl,
   retakeHref,
+  busy = false,
 }: {
   items: PrescriptionItem[];
   onChangeItems: (items: PrescriptionItem[]) => void;
@@ -31,6 +32,8 @@ export function PrescriptionVerify({
    * lib/pending-image.ts). */
   previewUrl: string | null;
   retakeHref: string;
+  /** True while the medication explanation is being generated. */
+  busy?: boolean;
 }) {
   function updateField(itemIdx: number, key: keyof PrescriptionItem, value: string) {
     const next = items.map((item, i) => {
@@ -105,9 +108,13 @@ export function PrescriptionVerify({
             <Camera className="size-3.5" />
             Retake Photo
           </Button>
-          <Button onClick={onConfirmAll} disabled={!allVerified}>
+          <Button onClick={onConfirmAll} disabled={!allVerified || busy}>
             <CircleCheck className="size-4" />
-            {allVerified ? "Lihat Informasi Obat" : "Konfirmasi semua field dulu"}
+            {busy
+              ? "Menyusun penjelasan obat…"
+              : allVerified
+                ? "Lihat Informasi Obat"
+                : "Konfirmasi semua field dulu"}
           </Button>
         </div>
       </div>

@@ -18,6 +18,9 @@ import {
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { useUser } from "@/lib/auth/use-user";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { scrollToSection } from "@/lib/scroll-to-section";
+
+type NavLink = { title: string } & ({ href: string } | { scrollTo: string });
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -70,12 +73,21 @@ export default function Navbar() {
     router.refresh();
   }
 
-  const navLinks = [
-    { title: "Beranda", href: "/" },
-    { title: "Konsultasi", href: "/consultations" },
-    { title: "Riwayat", href: "/consultations/history" },
-    { title: "Resep", href: "/prescriptions" },
-  ];
+  // Logged out: nothing past "/" is reachable anyway (proxy redirects it
+  // straight back to login), so the nav only offers the marketing links.
+  // Logged in: the marketing links serve no purpose (there's no landing
+  // page to browse back to — "/" itself redirects into the app), so swap
+  // them for the actual app sections instead of leaving a dead link around.
+  const navLinks: NavLink[] = user
+    ? [
+        { title: "Konsultasi", href: "/consultations" },
+        { title: "Riwayat", href: "/consultations/history" },
+        { title: "Resep", href: "/prescriptions" },
+      ]
+    : [
+        { title: "Beranda", href: "/" },
+        { title: "Tentang Kami", scrollTo: "tentang" },
+      ];
 
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
   const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
@@ -98,15 +110,26 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link, idx) => (
-            <Link
-              key={idx}
-              href={link.href}
-              className="text-sm font-medium text-slate-600 hover:text-primary transition-colors"
-            >
-              {link.title}
-            </Link>
-          ))}
+          {navLinks.map((link, idx) =>
+            "scrollTo" in link ? (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => scrollToSection(link.scrollTo, router)}
+                className="text-sm font-medium text-slate-600 hover:text-primary transition-colors"
+              >
+                {link.title}
+              </button>
+            ) : (
+              <Link
+                key={idx}
+                href={link.href}
+                className="text-sm font-medium text-slate-600 hover:text-primary transition-colors"
+              >
+                {link.title}
+              </Link>
+            )
+          )}
         </nav>
 
         <div className="hidden md:flex items-center gap-3 shrink-0">
@@ -187,16 +210,30 @@ export default function Navbar() {
 
         <div className="flex-1 overflow-y-auto p-6">
           <nav className="flex flex-col gap-6">
-            {navLinks.map((link, idx) => (
-              <Link
-                key={idx}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-lg font-medium text-slate-800 hover:text-primary transition-colors"
-              >
-                {link.title}
-              </Link>
-            ))}
+            {navLinks.map((link, idx) =>
+              "scrollTo" in link ? (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    scrollToSection(link.scrollTo, router);
+                  }}
+                  className="text-left text-lg font-medium text-slate-800 hover:text-primary transition-colors"
+                >
+                  {link.title}
+                </button>
+              ) : (
+                <Link
+                  key={idx}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-lg font-medium text-slate-800 hover:text-primary transition-colors"
+                >
+                  {link.title}
+                </Link>
+              )
+            )}
           </nav>
 
           <div className="flex flex-col gap-3 mt-8 pt-6 border-t">

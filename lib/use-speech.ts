@@ -101,11 +101,22 @@ export function useSpeechRecognition(lang = "id-ID") {
   return { supported, listening, interimText, start, stop };
 }
 
-export function speak(text: string, lang = "id-ID") {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+export function speak(
+  text: string,
+  opts: { lang?: string; onStart?: () => void; onEnd?: () => void } = {}
+) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    opts.onEnd?.();
+    return;
+  }
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang;
+  utterance.lang = opts.lang ?? "id-ID";
+  utterance.onstart = () => opts.onStart?.();
+  // Fires on natural completion AND on cancel() — callers use it to flip
+  // their "AI is speaking" state back off.
+  utterance.onend = () => opts.onEnd?.();
+  utterance.onerror = () => opts.onEnd?.();
   window.speechSynthesis.speak(utterance);
 }
 

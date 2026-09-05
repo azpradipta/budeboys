@@ -14,7 +14,7 @@ import { savePrescription, usePrescription } from "@/lib/store";
 import { getMedicationInfo, needsVerification } from "@/lib/prescription-ai";
 import { recognizePrescription } from "@/lib/ocr-client";
 import { takePendingImage } from "@/lib/pending-image";
-import type { PrescriptionRecord } from "@/lib/types";
+import type { MedicationInfo, PrescriptionRecord } from "@/lib/types";
 import { ArrowLeft, ScanLine, ArrowRight, ImageOff } from "lucide-react";
 
 export default function PrescriptionDetailPage() {
@@ -30,6 +30,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
   const ranOcr = useRef(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageGone, setImageGone] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
   // Revoke the blob URL when it changes or the page unmounts.
   useEffect(() => {
@@ -76,10 +77,29 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record?.id, record?.status]);
 
-  function finalizeMedications() {
-    if (!record) return;
-    const medications = record.items.map(getMedicationInfo);
-    persist({ ...record, status: "COMPLETED", medications });
+  async function finalizeMedications() {
+    if (!record || finalizing) return;
+    setFinalizing(true);
+    const localFallback = () => record.items.map(getMedicationInfo);
+    try {
+      const res = await fetch("/api/medication-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: record.items }),
+      });
+      const data = res.ok
+        ? ((await res.json()) as { medications: MedicationInfo[] })
+        : null;
+      persist({
+        ...record,
+        status: "COMPLETED",
+        medications: data?.medications ?? localFallback(),
+      });
+    } catch {
+      persist({ ...record, status: "COMPLETED", medications: localFallback() });
+    } finally {
+      setFinalizing(false);
+    }
   }
 
   if (record === undefined) {
@@ -146,15 +166,18 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           items={record.items}
           previewUrl={previewUrl}
           retakeHref={backToConsultation}
+          busy={finalizing}
           onChangeItems={(items) => persist({ ...record, items })}
           onConfirmAll={finalizeMedications}
         />
       ) : record.status === "VERIFIED" ? (
         <div className="flex flex-col items-center gap-4 py-10">
-          <p className="text-sm text-muted-foreground">Semua field terverifikasi.</p>
-          <Button onClick={finalizeMedications}>
-            Lihat Informasi Obat
-            <ArrowRight className="size-4" />
+          <p className="text-sm text-muted-foreground">
+            {finalizing ? "Menyusun penjelasan obat…" : "Semua field terverifikasi."}
+          </p>
+          <Button onClick={finalizeMedications} disabled={finalizing}>
+            {finalizing ? "Menyusun…" : "Lihat Informasi Obat"}
+            {!finalizing && <ArrowRight className="size-4" />}
           </Button>
         </div>
       ) : (

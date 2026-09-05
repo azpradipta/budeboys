@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { formatDuration } from "@/lib/format";
 import { useConsultationSessions, usePrescriptions } from "@/lib/store";
 import { MessageCircle, Plus, ChevronRight, Stethoscope, Pill } from "lucide-react";
 
@@ -62,6 +63,11 @@ export default function ConsultationHistoryPage() {
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(session.createdAt).toLocaleString("id-ID")}
+                            {session.completedAt &&
+                              ` · durasi ${formatDuration(
+                                new Date(session.completedAt).getTime() -
+                                  new Date(session.createdAt).getTime()
+                              )}`}
                           </p>
                         </div>
                       </div>

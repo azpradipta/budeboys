@@ -17,8 +17,9 @@ import { EvidenceList } from "@/components/shared/evidence-list";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DoctorValidationCard } from "./doctor-validation-card";
 import { PrescriptionPhase } from "./prescription-phase";
+import { formatDuration } from "@/lib/format";
 import type { ConsultationSession, DoctorValidation } from "@/lib/types";
-import { CheckCircle2, ShieldCheck, Share2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ShieldCheck, Share2, AlertTriangle, Clock } from "lucide-react";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -62,6 +63,35 @@ export function ConsultationResult({
               <StatusBadge status="COMPLETED" />
             </div>
 
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Clock className="size-3.5 text-primary" />
+                Durasi konsultasi{" "}
+                <strong className="text-foreground">
+                  {session.completedAt
+                    ? formatDuration(
+                        new Date(session.completedAt).getTime() -
+                          new Date(session.createdAt).getTime()
+                      )
+                    : "—"}
+                </strong>
+              </span>
+              <span>
+                {new Date(session.createdAt).toLocaleString("id-ID", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {session.completedAt &&
+                  ` – ${new Date(session.completedAt).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`}
+              </span>
+            </div>
+
             <Section title="Main Complaint">{summary.chief_complaint}</Section>
 
             <Section title="Symptoms">
@@ -74,7 +104,7 @@ export function ConsultationResult({
               </div>
             </Section>
 
-            <Section title="Duration">{summary.duration_onset}</Section>
+            <Section title="Durasi / Onset Gejala">{summary.duration_onset}</Section>
 
             {summary.relevant_information.length > 0 && (
               <Section title="Important Information">
@@ -135,9 +165,23 @@ export function ConsultationResult({
                     </DialogDescription>
                   </DialogHeader>
                   <div className="max-h-80 space-y-3 overflow-y-auto rounded-lg border border-border p-3 text-sm">
+                    <p>
+                      <strong>Tanggal:</strong>{" "}
+                      {new Date(session.createdAt).toLocaleString("id-ID")}
+                      {session.completedAt && (
+                        <>
+                          {" · "}
+                          <strong>Durasi konsultasi:</strong>{" "}
+                          {formatDuration(
+                            new Date(session.completedAt).getTime() -
+                              new Date(session.createdAt).getTime()
+                          )}
+                        </>
+                      )}
+                    </p>
                     <p><strong>Chief Complaint:</strong> {summary.chief_complaint}</p>
                     <p><strong>Symptoms:</strong> {summary.reported_symptoms.join(", ")}</p>
-                    <p><strong>Duration:</strong> {summary.duration_onset}</p>
+                    <p><strong>Durasi/Onset Gejala:</strong> {summary.duration_onset}</p>
                     <p><strong>AI Preliminary Assessment:</strong> {summary.ai_preliminary_assessment}</p>
                     <p><strong>Recommended Next Step:</strong> {summary.recommended_next_step}</p>
                   </div>

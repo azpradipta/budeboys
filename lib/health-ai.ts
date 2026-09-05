@@ -9,15 +9,19 @@ import {
   type RiskLevel,
   type UtteranceIntent,
 } from "./types";
-import { detectEmergency } from "./kb";
+import { detectEmergency, searchEvidence } from "./kb";
 
 /**
- * Local, rule-based stand-in for the Conversation Intelligence layer
- * described in docs/prd.md (Section 9-13, 20-24) — intent classification,
- * context extraction, and response templating happen client-side. Evidence
- * itself (Section 14-19) is fetched from `/api/evidence/search`, which
- * proxies the team's real RAG service (see docs/rag-api-contract.md) and
- * falls back to a local demo KB if that service isn't reachable.
+ * Local, rule-based fallback for the Conversation Intelligence + Health
+ * Evidence Engine (docs/prd.md Section 9-24). The real implementation is
+ * the team's Healthify Intelligence API (see lib/server/healthify-client.ts),
+ * called from app/api/consultation/turn and app/api/consultation/summary —
+ * those routes fall back to the functions in this file whenever Healthify
+ * is unconfigured, unreachable, or errors, so a consultation can still be
+ * completed end-to-end either way (PRD Section 49 Availability).
+ *
+ * Everything here is plain, isomorphic TS (no browser or Node-only APIs),
+ * safe to import from a route handler or, historically, from client code.
  */
 
 const SYMPTOM_KEYWORDS = [
@@ -63,7 +67,86 @@ export function classifyIntent(text: string, hasPriorContext: boolean): Utteranc
   return "NON_MEDICAL";
 }
 
-const DURATION_RE = /(\d+|se(?:hari|minggu|bulan))\s*(hari|minggu|bulan|jam)/i;
+export type SmallTalkKind = "greeting" | "thanks" | "acknowledgement" | "farewell";
+
+const SMALLTALK_PATTERNS: { kind: SmallTalkKind; re: RegExp }[] = [
+  {
+    kind: "greeting",
+    re: /^(halo|hai|hi|hey|helo|pagi|selamat (pagi|siang|sore|malam)|assalam(u'?alaikum)?|permisi)\b/,
+  },
+  {
+    kind: "thanks",
+    re: /\b(terima kasih|terimakasih|makasih|mksh|trims|thank(s| you)?)\b/,
+  },
+  {
+    kind: "farewell",
+    re: /\b(sampai jumpa|sampai nanti|dadah|bye|sudah dulu|segitu dulu|cukup segitu)\b/,
+  },
+  {
+    kind: "acknowledgement",
+    re: /^((oke|ok|okay|okey|baik|baiklah|sip|siap|noted|mengerti|paham|jelas|setuju|betul|deh|dong)[\s.!,]*)+$/,
+  },
+];
+
+/** Detects social / non-substantive turns ("terima kasih", "oke", "halo")
+ * so the assistant replies naturally without running the whole
+ * evidence-retrieval pipeline — the conversation stays two-way and evidence
+ * only appears when the user actually asks or describes something. */
+export function detectSmallTalk(text: string): SmallTalkKind | null {
+  const t = text.trim().toLowerCase();
+  if (!t || t.length > 48) return null;
+  if (t.includes("?")) return null;
+  if (QUESTION_MARKERS.some((q) => t.includes(q))) return null;
+  if (SYMPTOM_KEYWORDS.some((k) => t.includes(k))) return null;
+  return SMALLTALK_PATTERNS.find((p) => p.re.test(t))?.kind ?? null;
+}
+
+export function smallTalkReply(kind: SmallTalkKind): string {
+  switch (kind) {
+    case "greeting":
+      return "Halo! Silakan ceritakan keluhan kesehatan Anda, atau tanyakan hal yang ingin Anda ketahui.";
+    case "thanks":
+      return "Sama-sama. Kalau masih ada yang ingin ditanyakan atau diceritakan, saya siap membantu.";
+    case "acknowledgement":
+      return "Baik. Silakan lanjutkan bila ada yang ingin ditambahkan.";
+    case "farewell":
+      return 'Baik, jaga kesehatan ya. Anda bisa menekan "Akhiri Konsultasi" untuk mendapatkan ringkasan sesi ini.';
+  }
+}
+
+const DURATION_RE =
+  /((?:\d+\s*|se\s*|beberapa\s+)(?:hari|minggu|bulan|tahun|jam)(?:an)?|sebulanan|semingguan|seharian|setahunan)/i;
+
+/** Rough conversion of a free-text Indonesian duration to days. */
+function parseDurationDays(duration: string | null): number | null {
+  if (!duration) return null;
+  const t = duration.toLowerCase();
+  const numMatch = t.match(/(\d+)/);
+  const n = numMatch
+    ? parseInt(numMatch[1], 10)
+    : t.startsWith("se")
+      ? 1
+      : t.includes("beberapa")
+        ? 3
+        : 1;
+  if (t.includes("jam")) return n / 24;
+  if (t.includes("hari")) return n;
+  if (t.includes("minggu")) return n * 7;
+  if (t.includes("bulan")) return n * 30;
+  if (t.includes("tahun")) return n * 365;
+  return null;
+}
+
+/** Symptoms lasting ~3 weeks or more are past the "acute, self-limiting"
+ * window — they warrant an in-person evaluation regardless of what a
+ * generic KB snippet about acute illness says. */
+function isChronic(duration: string | null): boolean {
+  const days = parseDurationDays(duration);
+  return days !== null && days >= 21;
+}
+
+const CAPABILITY_RE =
+  /\b(bisa (bantu|membantu|nolong|menolong)|kamu (bisa|dapat|mampu)|apa (fungsi|kegunaan|guna|bisa)|kamu (siapa|apa|itu apa)|cara (kerja|pakai|kerjanya))\b/;
 
 /** Naive NLP extraction — merges new utterance info into existing context
  * without ever overwriting a known field with a guess (PRD 4.4). */
@@ -93,9 +176,13 @@ export function extractHealthContext(
   }
 
   const durationMatch = t.match(DURATION_RE);
-  if (durationMatch && !context.duration) {
-    next.duration = durationMatch[0];
-    next.onset = `${durationMatch[0]} yang lalu`;
+  // "berusia 5 tahun" is an age, not a symptom duration.
+  const looksLikeAge =
+    /\b(usia|umur|berusia|umurnya|usianya)\b/.test(t) &&
+    /tahun/.test(durationMatch?.[0] ?? "");
+  if (durationMatch && !looksLikeAge && !context.duration) {
+    next.duration = durationMatch[0].trim();
+    next.onset = `${durationMatch[0].trim()} yang lalu`;
   }
 
   if (/parah|berat|hebat|sangat sakit/.test(t)) next.severity = "severe";
@@ -133,92 +220,124 @@ export interface AssistantTurn {
   evidence: EvidenceReference[];
   risk: RiskLevel;
   insufficientEvidence: boolean;
+  /** The health context after folding in this utterance. */
+  healthContext: HealthContext;
 }
 
-/** Calls our /api/evidence/search proxy (real RAG service, with local
- * fallback — see docs/rag-api-contract.md). Never throws: a network failure
- * just yields no evidence, which the caller already treats as
- * INSUFFICIENT_EVIDENCE (PRD 4.2 — never fabricate a citation). */
-async function fetchEvidence(query: string): Promise<EvidenceReference[]> {
-  try {
-    const res = await fetch("/api/evidence/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { evidence?: EvidenceReference[] };
-    return data.evidence ?? [];
-  } catch {
-    return [];
-  }
-}
-
-/** Generates the assistant's reply for one user utterance, given the running
- * health context. Mirrors the pipeline in Section 14 & 20-24. */
-export async function generateAssistantTurn(
+/** Fallback turn generator — used by app/api/consultation/turn when
+ * Healthify is unconfigured/unreachable. It's a rule-based safety net, not
+ * a substitute for the real engine: it avoids repeating itself, doesn't
+ * re-ask for info it already has, and escalates persistent symptoms rather
+ * than parroting "acute illness resolves in 1-3 weeks". */
+export function generateLocalTurn(
   utterance: string,
   context: HealthContext,
-  hasPriorContext: boolean
-): Promise<AssistantTurn> {
+  hasPriorContext: boolean,
+  lastAssistantText = ""
+): AssistantTurn {
+  const t = utterance.toLowerCase();
   const intent = classifyIntent(utterance, hasPriorContext);
   const safety = safetyCheck(utterance);
+  const healthContext = extractHealthContext(context, utterance);
+  const base = { intent, risk: safety.risk, healthContext };
 
   if (intent === "EMERGENCY_SIGNAL" || safety.risk === "EMERGENCY_SIGNAL") {
     return {
+      ...base,
       intent: "EMERGENCY_SIGNAL",
       risk: "EMERGENCY_SIGNAL",
-      insufficientEvidence: false,
       evidence: [],
-      text:
-        "Ini terdengar seperti kondisi darurat. Saya tidak bisa memastikan kondisi Anda dari percakapan ini — mohon segera hubungi layanan gawat darurat atau ke IGD terdekat sekarang.",
+      insufficientEvidence: false,
+      text: "Ini terdengar seperti kondisi darurat. Saya tidak bisa memastikan kondisi Anda dari percakapan ini — mohon segera hubungi layanan gawat darurat atau ke IGD terdekat sekarang.",
+    };
+  }
+
+  // "apakah kamu bisa membantu…", "kamu bisa apa" — a capability question,
+  // not a health question.
+  if (CAPABILITY_RE.test(t)) {
+    return {
+      ...base,
+      evidence: [],
+      insufficientEvidence: false,
+      text: "Bisa. Saya membantu Anda menceritakan keluhan secara terstruktur, memberi informasi kesehatan berbasis literatur, lalu menyusun ringkasan yang bisa dibawa ke dokter. Silakan mulai — apa yang Anda rasakan?",
     };
   }
 
   if (intent === "NON_MEDICAL") {
     return {
-      intent,
-      risk: "LOW_RISK",
-      insufficientEvidence: false,
+      ...base,
       evidence: [],
-      text: "Baik, saya di sini. Silakan ceritakan keluhan kesehatan yang Anda alami.",
+      insufficientEvidence: false,
+      text: "Baik. Silakan ceritakan keluhan kesehatan Anda, atau tanyakan hal yang ingin Anda ketahui.",
+    };
+  }
+
+  if (intent === "MEDICATION_QUESTION") {
+    return {
+      ...base,
+      evidence: [],
+      insufficientEvidence: false,
+      text: "Saya catat informasi obat itu. Setelah Anda menerima resep dari dokter, unggah fotonya di halaman Resep agar saya bisa bantu menjelaskan dosis dan aturan pakainya.",
     };
   }
 
   const needsEvidence =
     intent === "MEDICAL_INFORMATION_REQUEST" || intent === "SYMPTOM_DESCRIPTION";
 
-  const query = `${context.chief_complaint ?? ""} ${context.symptoms.join(" ")} ${utterance}`;
-  const evidence = needsEvidence ? await fetchEvidence(query) : [];
-
-  if (needsEvidence && evidence.length === 0) {
+  if (!needsEvidence) {
     return {
-      intent,
-      risk: safety.risk,
-      insufficientEvidence: true,
+      ...base,
       evidence: [],
-      text: "Saya belum menemukan evidence yang cukup untuk memberikan jawaban yang dapat dipercaya mengenai hal tersebut. Boleh ceritakan gejala lain atau detail tambahan?",
+      insufficientEvidence: false,
+      text: "Baik, saya catat. Boleh ceritakan lebih detail — sejak kapan, seberapa sering, dan apakah ada gejala lain yang menyertai?",
     };
   }
 
-  let text: string;
-  if (intent === "MEDICATION_QUESTION") {
-    text =
-      "Saya mencatat informasi obat itu. Setelah Anda bertemu dokter dan menerima resep, unggah foto resepnya di halaman Resep agar saya bisa membantu menjelaskan obatnya.";
-  } else if (evidence.length > 0) {
-    const missingInfo =
-      !context.duration || context.symptoms.length < 2
-        ? " Agar penilaian lebih akurat, boleh ceritakan sudah berapa lama dan gejala lain yang menyertai?"
-        : "";
-    text = `Berdasarkan evidence yang saya temukan (${evidence
-      .map((e) => e.source.title)
-      .join("; ")}), ${evidence[0].snippet} Ini bukan diagnosis — jika ragu, tetap periksakan ke tenaga kesehatan.${missingInfo}`;
-  } else {
-    text =
-      "Baik, saya catat. Boleh ceritakan lebih detail — misalnya sejak kapan dan seberapa berat gejalanya?";
+  const query = `${healthContext.chief_complaint ?? ""} ${healthContext.symptoms.join(" ")} ${utterance}`;
+  const evidence = searchEvidence(query);
+
+  // Persistent symptoms — override the generic "acute" framing.
+  if (isChronic(healthContext.duration)) {
+    return {
+      ...base,
+      evidence,
+      insufficientEvidence: false,
+      text: `Keluhan yang sudah berlangsung ${healthContext.duration} termasuk menetap dan sudah melewati rentang pemulihan yang biasa. Kondisi seperti ini sebaiknya diperiksakan langsung ke dokter untuk pemeriksaan fisik dan penunjang — terlebih bila disertai penurunan berat badan, demam berulang, sesak, atau dahak berdarah. Ini bukan diagnosis.`,
+    };
   }
 
-  return { intent, risk: safety.risk, insufficientEvidence: false, evidence, text };
+  if (evidence.length === 0) {
+    return {
+      ...base,
+      evidence: [],
+      insufficientEvidence: true,
+      text: "Saya belum menemukan referensi yang cukup untuk menjawab itu dengan yakin. Boleh ceritakan gejala lain, sejak kapan, atau seberapa mengganggu?",
+    };
+  }
+
+  // Don't re-serve a reference we already cited — move the conversation on.
+  const alreadyCited = evidence.some((e) => lastAssistantText.includes(e.source.title));
+  if (alreadyCited) {
+    const nextAsk = !healthContext.duration
+      ? "sejak kapan keluhan ini muncul?"
+      : healthContext.associated_symptoms.length === 0
+        ? "apakah ada gejala lain yang menyertai, misalnya demam, sesak, atau nyeri?"
+        : "apakah keluhannya cenderung membaik, menetap, atau memburuk?";
+    return {
+      ...base,
+      evidence: [],
+      insufficientEvidence: false,
+      text: `Poin itu sudah tercakup di referensi yang saya sampaikan sebelumnya. Untuk menilai lebih lanjut — ${nextAsk}`,
+    };
+  }
+
+  const ask = !healthContext.duration ? " Sejak kapan keluhan ini berlangsung?" : "";
+  return {
+    ...base,
+    evidence,
+    insufficientEvidence: false,
+    text: `${evidence[0].snippet} (${evidence[0].source.title}). Ini informasi umum, bukan diagnosis — bila ragu, tetap periksakan ke tenaga kesehatan.${ask}`,
+  };
 }
 
 export function createMessage(

@@ -4,11 +4,14 @@ import { NextResponse, type NextRequest } from "next/server";
 /**
  * Runs before every matched request (see `config.matcher` below).
  *
- * Two jobs:
+ * Three jobs:
  * 1. Refresh the Supabase session cookie so it doesn't silently expire
  *    mid-session (the standard @supabase/ssr pattern).
  * 2. Redirect unauthenticated visitors away from protected pages, before
  *    any page code runs.
+ * 3. Redirect authenticated visitors away from "/" (the marketing landing
+ *    page) straight into the app — home is only ever meant for signed-out
+ *    visitors.
  *
  * Note: this file is named `proxy.ts` (not `middleware.ts`) — Next.js 16
  * renamed the convention. See node_modules/next/dist/docs/.../proxy.md.
@@ -63,6 +66,13 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     url.searchParams.set("login", "1");
     url.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (request.nextUrl.pathname === "/" && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/consultations";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

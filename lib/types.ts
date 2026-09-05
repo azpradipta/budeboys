@@ -157,12 +157,16 @@ export interface PrescriptionItem {
 export interface MedicationInfo {
   medicine_name: string;
   general_use: string;
+  /** Brief lay explanation of how it works. May be empty. */
+  how_it_works?: string;
   dosage_as_written: string;
   frequency_as_written: string;
   route: string;
   prescription_instruction: string;
   important_general_information: string[];
   matched: boolean;
+  /** Where the explanation came from. */
+  source?: "openai" | "local_kb" | "unmatched";
 }
 
 export type PrescriptionStatus =

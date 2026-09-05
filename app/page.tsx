@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HomeAuthRedirect } from "@/components/home-auth-redirect";
+import { ScrollToPending } from "@/components/scroll-to-pending";
 import HeroSection from "@/components/HeroSection";
 import { JourneyStepper } from "@/components/shared/journey-stepper";
 import { Button } from "@/components/ui/button";
@@ -76,6 +78,8 @@ const principles = [
 export default function Home() {
   return (
     <>
+      <HomeAuthRedirect />
+      <ScrollToPending />
       <HeroSection />
 
       <section className="mx-auto max-w-6xl px-6 pb-20">
@@ -100,7 +104,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-y border-border bg-white py-20">
+      <section id="tentang" className="scroll-mt-24 border-y border-border bg-white py-20">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-2">
           <div>
             <p className="mb-2 text-xs font-semibold tracking-wide text-primary uppercase">
