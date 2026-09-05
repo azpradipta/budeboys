@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/shared/page-header";
+import DashboardHeader from "@/components/DashboardHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +57,8 @@ export default function ProfilePage() {
   };
 
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
-  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
   const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   async function handleSignOut() {
@@ -68,10 +69,10 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-14">
-      <PageHeader title="Profil" description="Kelola akun serta privasi dan keamanan data Anda." />
+    <div className="mx-auto max-w-6xl px-6 py-26">
+      <DashboardHeader heading="Profil" subHeading="Kelola akun anda." />
 
-      <Card className="mb-8">
+      <Card className="my-8">
         <CardContent className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Avatar size="lg">
@@ -79,7 +80,9 @@ export default function ProfilePage() {
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium text-foreground">{displayName || "Memuat…"}</p>
+              <p className="font-medium text-foreground">
+                {displayName || "Memuat…"}
+              </p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
           </div>
@@ -100,9 +103,12 @@ export default function ProfilePage() {
             <div className="mb-4 flex items-center gap-2">
               <ShieldCheck className="size-5 text-primary" />
               <div>
-                <p className="font-heading font-semibold text-foreground">Privasi &amp; Keamanan</p>
+                <p className="font-heading font-semibold text-foreground">
+                  Privasi &amp; Keamanan
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Transparansi mengenai bagaimana data kesehatan Anda diperlakukan.
+                  Transparansi mengenai bagaimana data kesehatan Anda
+                  diperlakukan.
                 </p>
               </div>
             </div>

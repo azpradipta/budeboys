@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { PageHeader } from "@/components/shared/page-header";
+import DashboardHeader from "@/components/DashboardHeader";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatDuration } from "@/lib/format";
 import { useConsultationSessions, usePrescriptions } from "@/lib/store";
-import { MessageCircle, Plus, ChevronRight, Stethoscope, Pill } from "lucide-react";
+import {
+  MessageCircle,
+  Plus,
+  ChevronRight,
+  Stethoscope,
+  Pill,
+} from "lucide-react";
 
 const PHASES = [
   { key: "understand", label: "Konsultasi", icon: MessageCircle },
@@ -20,19 +26,15 @@ const PHASES = [
 export default function ConsultationHistoryPage() {
   const sessions = useConsultationSessions();
   const prescriptions = usePrescriptions();
-  const consultationsWithPrescription = new Set(prescriptions.map((p) => p.consultationId));
+  const consultationsWithPrescription = new Set(
+    prescriptions.map((p) => p.consultationId),
+  );
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-14">
-      <PageHeader
-        title="Riwayat Konsultasi"
-        description="Semua sesi konsultasi Anda — tiap sesi merangkum tiga fase perjalanannya: konsultasi AI, validasi dokter, dan pemahaman resep."
-        actions={
-          <Button render={<Link href="/consultations" />}>
-            <Plus className="size-4" />
-            Konsultasi Baru
-          </Button>
-        }
+    <div className="mx-auto max-w-6xl px-6 py-26 space-y-6">
+      <DashboardHeader
+        heading="Riwayat Konsultasi"
+        subHeading="Semua sesi konsultasi Anda. Tiap sesi merangkum tiga fase perjalanannya: konsultasi AI, validasi dokter, dan pemahaman resep."
       />
 
       {sessions.length === 0 ? (
@@ -62,11 +64,13 @@ export default function ConsultationHistoryPage() {
                               "Belum ada keluhan tercatat"}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(session.createdAt).toLocaleString("id-ID")}
+                            {new Date(session.createdAt).toLocaleString(
+                              "id-ID",
+                            )}
                             {session.completedAt &&
                               ` · durasi ${formatDuration(
                                 new Date(session.completedAt).getTime() -
-                                  new Date(session.createdAt).getTime()
+                                  new Date(session.createdAt).getTime(),
                               )}`}
                           </p>
                         </div>
@@ -74,11 +78,13 @@ export default function ConsultationHistoryPage() {
                       <div className="flex items-center gap-2">
                         {session.summary && (
                           <div className="hidden gap-1 sm:flex">
-                            {session.summary.reported_symptoms.slice(0, 2).map((s) => (
-                              <Badge key={s} variant="secondary">
-                                {s}
-                              </Badge>
-                            ))}
+                            {session.summary.reported_symptoms
+                              .slice(0, 2)
+                              .map((s) => (
+                                <Badge key={s} variant="secondary">
+                                  {s}
+                                </Badge>
+                              ))}
                           </div>
                         )}
                         <StatusBadge status={session.status as "ACTIVE"} />
@@ -92,7 +98,9 @@ export default function ConsultationHistoryPage() {
                           key={phase.key}
                           className={cn(
                             "flex items-center gap-1.5 text-xs",
-                            phaseDone[idx] ? "text-primary" : "text-muted-foreground/60"
+                            phaseDone[idx]
+                              ? "text-primary"
+                              : "text-muted-foreground/60",
                           )}
                         >
                           <phase.icon className="size-3.5" />
@@ -118,7 +126,9 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-16 text-center">
       <MessageCircle className="size-8 text-muted-foreground" />
-      <p className="text-sm font-medium text-foreground">Belum ada riwayat konsultasi</p>
+      <p className="text-sm font-medium text-foreground">
+        Belum ada riwayat konsultasi
+      </p>
       <p className="max-w-sm text-sm text-muted-foreground">
         Mulai konsultasi pertama Anda untuk melihat riwayatnya di sini.
       </p>

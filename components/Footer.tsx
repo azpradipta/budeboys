@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
 
 const columns = [
   {
@@ -27,9 +28,15 @@ const Footer = () => {
           <div className="max-w-xs">
             <Link
               href="/"
-              className="text-xl font-bold tracking-tighter text-primary"
+              className="text-4xl font-bold tracking-tighter text-primary flex items-center gap-1"
             >
-              Healthalk<span className="text-primary/60">.</span>
+              <Image
+                src="/assets/healThalk-logo.webp"
+                alt="Logo HealThalk"
+                width="100"
+                height="100"
+              />
+              Healthalk.
             </Link>
             <p className="mt-3 text-sm text-muted-foreground">
               Dari cerita keluhan hingga pemahaman resep — satu perjalanan

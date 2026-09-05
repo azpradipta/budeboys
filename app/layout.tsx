@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter, Manrope } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Manrope } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -14,16 +14,6 @@ const manropeHeading = Manrope({
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: "Healthalk",
   description: "AI-assisted healthcare journey — from symptoms to treatment.",
@@ -36,11 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="id" // Ubah ke "id" jika target utama bahasa Indonesia
+      lang="id"
       className={cn("font-sans", inter.variable, manropeHeading.variable)}
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col antialiased bg-slate-50`}
+        className="min-h-screen flex flex-col antialiased bg-slate-50"
         suppressHydrationWarning
       >
         <TooltipProvider>

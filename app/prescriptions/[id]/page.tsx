@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/shared/page-header";
-import { StatusBadge } from "@/components/shared/status-badge";
+import DashboardHeader from "@/components/DashboardHeader";
 import { PrescriptionVerify } from "@/components/prescription/prescription-verify";
 import { MedicationInfoCard } from "@/components/prescription/medication-info-card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { savePrescription, useConsultationSession, usePrescription } from "@/lib/store";
+import {
+  savePrescription,
+  useConsultationSession,
+  usePrescription,
+} from "@/lib/store";
 import { getMedicationInfo, needsVerification } from "@/lib/prescription-ai";
 import { recognizePrescription } from "@/lib/ocr-client";
 import { takePendingImage } from "@/lib/pending-image";
@@ -22,13 +25,16 @@ import {
   assessmentOf,
 } from "@/lib/consultation-condition";
 import type { MedicationInfo, PrescriptionRecord } from "@/lib/types";
-import { ArrowLeft, ScanLine, ArrowRight, ImageOff, Stethoscope } from "lucide-react";
+import {
+  ArrowLeft,
+  ScanLine,
+  ArrowRight,
+  ImageOff,
+  Stethoscope,
+} from "lucide-react";
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
-  // Keyed so every field of local state (previewUrl, imageGone, the ranOcr
-  // guard) naturally resets via remount when navigating between different
-  // prescriptions — no manual "reset state on id change" effect needed.
   return <PrescriptionDetailBody key={params.id} id={params.id} />;
 }
 
@@ -40,7 +46,6 @@ function PrescriptionDetailBody({ id }: { id: string }) {
   const [imageGone, setImageGone] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
 
-  // Revoke the blob URL when it changes or the page unmounts.
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -51,16 +56,12 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     savePrescription(next);
   }
 
-  // Run real, client-side OCR once when a freshly uploaded record is opened
-  // — consumes the transient in-memory file handed off from Phase 3.
   useEffect(() => {
     if (!record || record.status !== "UPLOADED" || ranOcr.current) return;
     ranOcr.current = true;
 
     const file = takePendingImage(record.id);
     if (!file) {
-      // Deferred (not a bare setState-then-return in the effect body) —
-      // consistent with the async continuations below.
       Promise.resolve().then(() => setImageGone(true));
       return;
     }
@@ -80,9 +81,8 @@ function PrescriptionDetailBody({ id }: { id: string }) {
       .catch(() => {
         URL.revokeObjectURL(objectUrl);
         savePrescription({ ...record, status: "UPLOADED" });
-        setImageGone(true); // OCR failed — treat like "needs a fresh photo"
+        setImageGone(true);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record?.id, record?.status]);
 
   async function finalizeMedications() {
@@ -137,18 +137,10 @@ function PrescriptionDetailBody({ id }: { id: string }) {
   const assessment = assessmentOf(consultation ?? null);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <Link
-        href="/prescriptions"
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-      >
-        <ArrowLeft className="size-3.5" /> Resep
-      </Link>
-      <PageHeader
-        eyebrow="Resep untuk kondisi"
-        title={cond.kind === "unknown" ? "Pemahaman Resep" : cond.label}
-        description="Obat untuk kondisi ini beserta penjelasannya. Dosis & aturan pakai selalu mengikuti yang dituliskan dokter."
-        actions={<StatusBadge status={record.status as "PROCESSING"} />}
+    <div className="mx-auto max-w-6xl px-6 py-26 space-y-6 ">
+      <DashboardHeader
+        heading="Resep Untuk Kondisi"
+        subHeading={cond.kind === "unknown" ? "Pemahaman Resep" : cond.label}
       />
 
       {consultation && (
@@ -159,15 +151,18 @@ function PrescriptionDetailBody({ id }: { id: string }) {
               <span className="text-xs font-semibold tracking-wide text-primary uppercase">
                 Kondisi / Pra-diagnosa
               </span>
-              <Badge variant="outline">{CONDITION_KIND_LABEL[cond.kind]}</Badge>
             </div>
-            <p className="font-heading text-base font-medium text-foreground">{cond.label}</p>
-            {assessment && <p className="text-sm text-muted-foreground">{assessment}</p>}
+            <p className="font-heading text-base font-medium text-foreground">
+              {cond.label}
+            </p>
+            {assessment && (
+              <p className="text-sm text-muted-foreground">{assessment}</p>
+            )}
             <Link
               href={backToConsultation}
               className="w-fit text-xs text-primary underline-offset-2 hover:underline"
             >
-              Lihat konsultasi asal →
+              <Button>Lihat konsultasi asal</Button>
             </Link>
           </CardContent>
         </Card>
@@ -178,8 +173,9 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           <ImageOff className="size-4" />
           <AlertTitle>Gambar tidak lagi tersedia</AlertTitle>
           <AlertDescription>
-            Foto resep hanya diproses sekali di perangkat Anda dan tidak disimpan — sepertinya
-            halaman ini dibuka ulang. Silakan unggah ulang dari konsultasinya.
+            Foto resep hanya diproses sekali di perangkat Anda dan tidak
+            disimpan — sepertinya halaman ini dibuka ulang. Silakan unggah ulang
+            dari konsultasinya.
             <div className="mt-3">
               <Button size="sm" render={<Link href={backToConsultation} />}>
                 Kembali ke Konsultasi
@@ -206,7 +202,9 @@ function PrescriptionDetailBody({ id }: { id: string }) {
       ) : record.status === "VERIFIED" ? (
         <div className="flex flex-col items-center gap-4 py-10">
           <p className="text-sm text-muted-foreground">
-            {finalizing ? "Menyusun penjelasan obat…" : "Semua field terverifikasi."}
+            {finalizing
+              ? "Menyusun penjelasan obat…"
+              : "Semua field terverifikasi."}
           </p>
           <Button onClick={finalizeMedications} disabled={finalizing}>
             {finalizing ? "Menyusun…" : "Lihat Informasi Obat"}
@@ -219,8 +217,8 @@ function PrescriptionDetailBody({ id }: { id: string }) {
             <MedicationInfoCard key={i} medication={med} />
           ))}
           <p className="text-center text-[11px] text-muted-foreground">
-            Healthalk berfungsi sebagai Prescription Understanding Layer, bukan prescribing
-            system — resep ini tidak diubah oleh AI.
+            Healthalk berfungsi sebagai Prescription Understanding Layer, bukan
+            prescribing system — resep ini tidak diubah oleh AI.
           </p>
         </div>
       )}

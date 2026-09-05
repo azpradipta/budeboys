@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
@@ -90,7 +91,8 @@ export default function Navbar() {
       ];
 
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
-  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
   const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   return (
@@ -104,9 +106,15 @@ export default function Navbar() {
       >
         <Link
           href="/"
-          className="text-2xl font-bold tracking-tighter text-primary shrink-0"
+          className="text-2xl font-bold tracking-tighter flex items-center gap-1 text-primary shrink-0"
         >
-          Healthalk<span className="text-primary/60">.</span>
+          <Image
+            src="/assets/healThalk-logo.webp"
+            alt="Logo HealThalk"
+            width="40"
+            height="40"
+          />
+          <h1>Healthalk.</h1>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -128,7 +136,7 @@ export default function Navbar() {
               >
                 {link.title}
               </Link>
-            )
+            ),
           )}
         </nav>
 
@@ -139,7 +147,9 @@ export default function Navbar() {
                 render={<Button variant="ghost" className="gap-2 px-1.5" />}
               >
                 <Avatar size="sm">
-                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                  {avatarUrl && (
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                  )}
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="max-w-32 truncate text-sm">{displayName}</span>
@@ -160,15 +170,19 @@ export default function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="ghost" onClick={() => openLogin("/profile")}>
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={() => openLogin("/profile")}
+            >
               Masuk
             </Button>
           )}
 
-          {user ? (
-            <Button render={<Link href="/consultations" />}>Mulai Konsultasi</Button>
-          ) : (
-            <Button onClick={() => openLogin("/consultations")}>Mulai Konsultasi</Button>
+          {!user && (
+            <Button size="lg" onClick={() => openLogin("/consultations")}>
+              Mulai Konsultasi
+            </Button>
           )}
         </div>
 
@@ -232,7 +246,7 @@ export default function Navbar() {
                 >
                   {link.title}
                 </Link>
-              )
+              ),
             )}
           </nav>
 
@@ -241,15 +255,24 @@ export default function Navbar() {
               <>
                 <div className="flex items-center gap-2 px-1 pb-2">
                   <Avatar size="sm">
-                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    {avatarUrl && (
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                    )}
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="truncate text-sm font-medium">{displayName}</span>
+                  <span className="truncate text-sm font-medium">
+                    {displayName}
+                  </span>
                 </div>
                 <Button
                   variant="outline"
                   className="w-full rounded-full"
-                  render={<Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} />}
+                  render={
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                  }
                 >
                   Profil
                 </Button>
@@ -263,14 +286,6 @@ export default function Navbar() {
                 >
                   <LogOut className="size-4" />
                   Keluar
-                </Button>
-                <Button
-                  className="w-full"
-                  render={
-                    <Link href="/consultations" onClick={() => setIsMobileMenuOpen(false)} />
-                  }
-                >
-                  Mulai Konsultasi
                 </Button>
               </>
             ) : (
@@ -300,7 +315,11 @@ export default function Navbar() {
         </div>
       </div>
 
-      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} next={loginNext} />
+      <LoginDialog
+        open={loginOpen}
+        onOpenChange={setLoginOpen}
+        next={loginNext}
+      />
     </>
   );
 }
