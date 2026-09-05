@@ -16,7 +16,9 @@ export async function GET() {
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const sessions = data.map((row) => decryptFromStorage(row.data as ConsultationSession));
+  const sessions = data.map((row) =>
+    decryptFromStorage(row.data as ConsultationSession, user.id)
+  );
   return NextResponse.json(sessions);
 }
 
@@ -37,12 +39,15 @@ export async function POST(req: NextRequest) {
     .upsert({
       id: body.id,
       user_id: user.id,
-      data: encryptForStorage(body),
+      data: encryptForStorage(body, user.id),
       updated_at: new Date().toISOString(),
     })
     .select("data")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json(decryptFromStorage(data.data as ConsultationSession), { status: 201 });
+  return NextResponse.json(
+    decryptFromStorage(data.data as ConsultationSession, user.id),
+    { status: 201 }
+  );
 }

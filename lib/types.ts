@@ -173,6 +173,7 @@ export type PrescriptionStatus =
   | "UPLOADED"
   | "IMAGE_QUALITY_FAILED"
   | "PROCESSING"
+  | "TEXT_REVIEW"
   | "NEEDS_VERIFICATION"
   | "VERIFIED"
   | "COMPLETED";
@@ -190,6 +191,9 @@ export interface PrescriptionRecord {
   imageDataUrl: string | null;
   fileName: string;
   createdAt: string;
+  /** Raw OCR transcription (the user can correct it before it's parsed).
+   * This is text only — the image itself never leaves the client. */
+  rawText?: string;
   items: PrescriptionItem[];
   medications: MedicationInfo[];
 }
