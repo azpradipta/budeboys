@@ -6,17 +6,19 @@ Dokumentasi: https://healthify.twenti.studio/docs
 
 ## Setup
 
-1. Di halaman dokumentasi, klik **Request API access**, jelaskan aplikasi dan
-   perkiraan volume, lalu key seperti `ht_live_xxxxxxxx` akan diberikan.
-2. Simpan di `.env.local` (server-only, jangan pakai prefiks `NEXT_PUBLIC_`):
+1. Key berformat `ht_live_xxxxxxxx` didapat lewat tombol **Request API access**
+   di halaman dokumentasi, dengan menyertakan deskripsi aplikasi dan perkiraan
+   volume request.
+2. Key tersebut ditaruh di `.env.local`. Sifatnya server-only, sehingga tidak
+   memakai prefiks `NEXT_PUBLIC_`:
 
    ```
    HEALTHIFY_API_KEY=ht_live_xxxxxxxx
    HEALTHIFY_API_BASE_URL=https://healthify.twenti.studio
    ```
 
-3. Restart dev server. Aplikasi otomatis beralih dari fallback lokal ke API
-   sungguhan.
+3. Setelah dev server dijalankan ulang, aplikasi otomatis beralih dari fallback
+   lokal ke API sungguhan.
 
 Selama key belum diisi, semuanya tetap berfungsi memakai logika berbasis aturan
 dan demo KB di `lib/health-ai.ts` dan `lib/kb.ts`.
@@ -38,7 +40,7 @@ dan demo KB di `lib/health-ai.ts` dan `lib/kb.ts`.
 
 ## Aturan dari dokumentasi mereka yang kita patuhi
 
-- **Jangan menyusun `https://doi.org/{doi}` sendiri.** Tautan sumber hanya
+- **Tautan `https://doi.org/{doi}` tidak pernah disusun sendiri.** Sumber baru
   ditampilkan bila Healthify mengembalikan `url` yang tervalidasi.
 - **`notice`, `has_evidence: false`, dan safety flag** dipetakan ke `RiskLevel`,
   `insufficientEvidence`, dan teks respons darurat kita.

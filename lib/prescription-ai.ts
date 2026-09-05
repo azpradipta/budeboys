@@ -1,11 +1,8 @@
 import { field, genId, type MedicationInfo, type PrescriptionItem } from "./types";
 import { lookupMedication } from "./kb";
 
-/**
- * Helper resep di sekitar OCR: penyaringan kualitas gambar, penentuan perlu
- * verifikasi, parser berbasis aturan saat route LLM tidak tersedia, dan
- * pencarian ke drug KB lokal.
- */
+// Helper resep di sekitar OCR: cek kualitas gambar, penanda verifikasi,
+// parser cadangan, dan pencarian ke drug KB lokal.
 
 export function checkImageQuality(file: File): { ok: boolean; reason?: string } {
   if (file.size < 8_000) {
@@ -17,9 +14,7 @@ export function checkImageQuality(file: File): { ok: boolean; reason?: string } 
   return { ok: true };
 }
 
-/** Fallback untuk app/api/prescription/parse saat OpenAI tidak tersedia.
- * Sengaja konservatif: confidence dibuat rendah agar semua field ditandai
- * untuk diverifikasi. */
+// Fallback saat OpenAI tidak tersedia. Confidence rendah agar semua diverifikasi.
 export function parsePrescriptionText(rawText: string): PrescriptionItem[] {
   const text = rawText || "";
   const firstLine =

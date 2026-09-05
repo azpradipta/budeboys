@@ -27,11 +27,10 @@ export function PrescriptionVerify({
   items: PrescriptionItem[];
   onChangeItems: (items: PrescriptionItem[]) => void;
   onConfirmAll: () => void;
-  /** Object URL dari file unggahan sementara di klien, bukan dari record,
-   * yang memang tidak pernah membawa gambar. */
+  // Object URL dari file sementara di klien, karena record tidak membawa gambar.
   previewUrl: string | null;
   retakeHref: string;
-  /** True selama penjelasan obat sedang dibuat. */
+  // True selama penjelasan obat sedang dibuat.
   busy?: boolean;
 }) {
   function updateField(itemIdx: number, key: keyof PrescriptionItem, value: string) {

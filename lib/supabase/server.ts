@@ -1,9 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-/** Supabase client untuk route handler dan server component. Sesi dibaca
- * dari cookie sehingga tiap query berjalan sebagai user tersebut dan RLS
- * Postgres yang menjaga isolasi (docs/supabase-schema.sql). */
+// Supabase client sisi server. Sesi dibaca dari cookie agar RLS yang menjaga isolasi.
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
@@ -21,8 +19,7 @@ export async function createSupabaseServerClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Server component tidak bisa menulis cookie. Aman, karena
-            // proxy.ts yang me-refresh sesinya.
+            // Server component tidak bisa menulis cookie; proxy.ts yang me-refresh sesi.
           }
         },
       },

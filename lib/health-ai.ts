@@ -11,11 +11,7 @@ import {
 } from "./types";
 import { detectEmergency, searchEvidence } from "./kb";
 
-/**
- * Fallback berbasis aturan untuk mesin percakapan. Route konsultasi memanggil
- * Healthify dulu, lalu turun ke fungsi-fungsi di sini bila Healthify tidak
- * dikonfigurasi atau gagal, sehingga konsultasi selalu bisa diselesaikan.
- */
+// Fallback berbasis aturan, dipakai route konsultasi saat Healthify gagal.
 
 const SYMPTOM_KEYWORDS = [
   "demam",
@@ -81,9 +77,7 @@ const SMALLTALK_PATTERNS: { kind: SmallTalkKind; re: RegExp }[] = [
   },
 ];
 
-/** Sapaan dan basa-basi ("terima kasih", "oke", "halo") dijawab langsung
- * tanpa evidence retrieval, jadi sitasi hanya muncul saat benar-benar
- * ditanya. */
+// Basa-basi dijawab langsung tanpa evidence retrieval.
 export function detectSmallTalk(text: string): SmallTalkKind | null {
   const t = text.trim().toLowerCase();
   if (!t || t.length > 48) return null;
@@ -109,7 +103,7 @@ export function smallTalkReply(kind: SmallTalkKind): string {
 const DURATION_RE =
   /((?:\d+\s*|se\s*|beberapa\s+)(?:hari|minggu|bulan|tahun|jam)(?:an)?|sebulanan|semingguan|seharian|setahunan)/i;
 
-/** Konversi kasar durasi teks bebas ke satuan hari. */
+// Konversi kasar durasi teks bebas ke satuan hari.
 function parseDurationDays(duration: string | null): number | null {
   if (!duration) return null;
   const t = duration.toLowerCase();
@@ -129,8 +123,7 @@ function parseDurationDays(duration: string | null): number | null {
   return null;
 }
 
-/** Lewat sekitar tiga minggu, keluhan tidak lagi tergolong akut, jadi perlu
- * pemeriksaan langsung apa pun isi snippet evidence-nya. */
+// Lewat tiga minggu keluhan tidak lagi akut, jadi perlu pemeriksaan langsung.
 function isChronic(duration: string | null): boolean {
   const days = parseDurationDays(duration);
   return days !== null && days >= 21;
@@ -139,8 +132,7 @@ function isChronic(duration: string | null): boolean {
 const CAPABILITY_RE =
   /\b(bisa (bantu|membantu|nolong|menolong)|kamu (bisa|dapat|mampu)|apa (fungsi|kegunaan|guna|bisa)|kamu (siapa|apa|itu apa)|cara (kerja|pakai|kerjanya))\b/;
 
-/** Menggabungkan ucapan baru ke konteks berjalan. Field yang sudah terisi
- * tidak pernah ditimpa oleh tebakan baru. */
+// Menggabungkan ucapan baru ke konteks tanpa menimpa field yang sudah terisi.
 function extractHealthContext(
   context: HealthContext,
   utterance: string
@@ -211,13 +203,11 @@ export interface AssistantTurn {
   evidence: EvidenceReference[];
   risk: RiskLevel;
   insufficientEvidence: boolean;
-  /** Konteks kesehatan setelah ucapan ini digabungkan. */
+  // Konteks kesehatan setelah ucapan ini digabungkan.
   healthContext: HealthContext;
 }
 
-/** Pengaman untuk app/api/consultation/turn: tidak mengulang sitasi
- * sebelumnya, tidak menanyakan hal yang sudah dijawab, dan meng-escalate
- * keluhan yang menetap. */
+// Pengaman untuk route turn: tidak mengulang sitasi dan meng-escalate keluhan menetap.
 export function generateLocalTurn(
   utterance: string,
   context: HealthContext,
@@ -241,8 +231,7 @@ export function generateLocalTurn(
     };
   }
 
-  // "kamu bisa apa", "apakah kamu bisa membantu": pertanyaan soal asisten,
-  // bukan soal keluhan.
+  // Pertanyaan soal asistennya, bukan soal keluhan.
   if (CAPABILITY_RE.test(t)) {
     return {
       ...base,
@@ -304,7 +293,7 @@ export function generateLocalTurn(
     };
   }
 
-  // Referensi ini sudah dikutip di giliran sebelumnya, jadi ganti pertanyaan.
+  // Referensi ini sudah dikutip sebelumnya, jadi pertanyaannya yang diganti.
   const alreadyCited = evidence.some((e) => lastAssistantText.includes(e.source.title));
   if (alreadyCited) {
     const nextAsk = !healthContext.duration

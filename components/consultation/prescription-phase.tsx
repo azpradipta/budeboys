@@ -14,8 +14,7 @@ import { savePrescription, usePrescriptionsForConsultation } from "@/lib/store";
 import { genId, type PrescriptionRecord } from "@/lib/types";
 import { UploadCloud, ImageOff, ScanLine, ChevronRight, Pill } from "lucide-react";
 
-/** Fase 3 menempel pada konsultasinya: resep hanya bisa diunggah dari sini,
- * tidak pernah sebagai aksi lepas. */
+// Fase 3 menempel pada konsultasinya, jadi resep hanya bisa diunggah dari sini.
 export function PrescriptionPhase({ consultationId }: { consultationId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,7 +30,7 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
       setError(quality.reason ?? "Kualitas gambar kurang baik.");
       return;
     }
-    // Crop first so OCR only sees the relevant part of the photo.
+    // Melewati tahap crop dulu agar OCR hanya membaca bagian yang relevan.
     setToCrop(file);
   }
 
@@ -39,8 +38,7 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
     setToCrop(null);
     setLoading(true);
     const id = genId("rx");
-    // File-nya hanya ada di memori, dioper ke tahap OCR di halaman berikut
-    // dan tidak dikirim ke mana pun (lib/pending-image.ts).
+    // File-nya hanya di memori, dioper ke tahap OCR tanpa dikirim ke mana pun.
     stashPendingImage(id, file);
 
     const record: PrescriptionRecord = {

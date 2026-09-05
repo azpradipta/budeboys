@@ -10,11 +10,7 @@ import { useConsultationSessions, usePrescriptions } from "@/lib/store";
 import { conditionOf, CONDITION_KIND_LABEL } from "@/lib/consultation-condition";
 import { Pill, ChevronRight, MessageCircle } from "lucide-react";
 
-/**
- * Daftar obat dari tiap konsultasi. Gaya kartunya mengikuti Riwayat
- * Konsultasi, bedanya klik di sini langsung membuka deskripsi obat, dan
- * tiap kartu menyebut konsultasi asalnya.
- */
+// Daftar obat per konsultasi. Klik kartunya langsung membuka deskripsi obat.
 export default function PrescriptionsPage() {
   const records = usePrescriptions();
   const sessions = useConsultationSessions();

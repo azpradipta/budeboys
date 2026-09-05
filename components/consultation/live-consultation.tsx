@@ -18,8 +18,7 @@ import {
 import type { ConsultationSession, HealthContext } from "@/lib/types";
 import { Mic, Square, Send, PhoneOff, Keyboard, VolumeX, Clock } from "lucide-react";
 
-/** Memanggil /api/consultation/turn, yang sudah punya fallback sendiri di
- * server. Penanganan di sini hanya untuk kasus server kita tak terjangkau. */
+// Memanggil route turn yang sudah punya fallback sendiri di server.
 async function fetchTurn(
   query: string,
   sessionId: string,
@@ -41,7 +40,7 @@ async function fetchTurn(
     });
     if (res.ok) return (await res.json()) as AssistantTurn;
   } catch {
-    // fall through to the degenerate fallback below
+    // Jatuh ke jawaban minimal di bawah.
   }
   return {
     text: "Maaf, saya tidak bisa memproses itu sekarang karena koneksi ke server bermasalah. Coba lagi sesaat lagi.",
@@ -87,16 +86,13 @@ export function LiveConsultation({
     if (!text.trim() || processingRef.current || endedRef.current) return;
     processingRef.current = true;
 
-    // Half-duplex: mic dimatikan dan TTS sebelumnya dihentikan dulu. Kalau
-    // tidak, suara jawaban dari speaker ikut tertranskrip jadi pertanyaan
-    // baru (feedback loop).
+    // Half-duplex: mic dan TTS dimatikan dulu agar tidak terjadi feedback loop.
     stopEverything();
 
     const hasPriorContext = session.messages.some((m) => m.role === "user");
     const userMessage = createMessage("user", text.trim());
 
-    // Basa-basi dijawab seketika di klien, tanpa panggilan server maupun
-    // evidence.
+    // Basa-basi dijawab seketika di klien, tanpa panggilan server.
     const social = detectSmallTalk(text);
     if (social) {
       const reply = smallTalkReply(social);
@@ -153,9 +149,7 @@ export function LiveConsultation({
       healthContext: turn.healthContext,
     });
 
-    // Hanya bersuara di mode voice, mic tetap mati. Tidak ada auto-restart:
-    // pengguna menekan mic lagi untuk giliran berikutnya, sehingga feedback
-    // loop mustahil terjadi.
+    // Hanya bersuara di mode voice, dan mic tetap mati sampai ditekan lagi.
     if (!useTextMode) {
       setAiSpeaking(true);
       speak(turn.text, { onEnd: () => setAiSpeaking(false) });
@@ -167,8 +161,7 @@ export function LiveConsultation({
       stopEverything();
       return;
     }
-    // Tapping the mic while the AI is talking = barge in: cut it off and
-    // start listening.
+    // Menekan mic saat AI bicara berarti menyela: suaranya dipotong.
     cancelSpeech();
     setAiSpeaking(false);
     start((text) => void handleUtterance(text));

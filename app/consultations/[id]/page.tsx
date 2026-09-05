@@ -11,9 +11,7 @@ import { saveSession, useConsultationSession } from "@/lib/store";
 import type { ConsultationSession, ConsultationSummary } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 
-/** Calls our own /api/consultation/summary (real Healthify, with a local
- * rule-based fallback baked in server-side). Only degrades further here if
- * our own server is unreachable entirely. */
+// Memanggil route summary yang sudah punya fallback sendiri di server.
 async function fetchSummary(session: ConsultationSession): Promise<ConsultationSummary> {
   try {
     const res = await fetch("/api/consultation/summary", {
@@ -26,7 +24,7 @@ async function fetchSummary(session: ConsultationSession): Promise<ConsultationS
       return data.summary;
     }
   } catch {
-    // fall through to the degenerate fallback below
+    // Jatuh ke ringkasan minimal di bawah.
   }
   return {
     chief_complaint: session.healthContext.chief_complaint ?? "Tidak disebutkan",

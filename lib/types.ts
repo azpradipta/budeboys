@@ -67,7 +67,7 @@ export interface EvidenceSource {
 export interface EvidenceReference {
   source: EvidenceSource;
   snippet: string;
-  /** Skor relevansi internal, tidak untuk ditampilkan mentah ke pengguna. */
+  // Skor relevansi internal, tidak untuk ditampilkan mentah ke pengguna.
   score: number;
 }
 
@@ -153,7 +153,7 @@ export interface PrescriptionItem {
 export interface MedicationInfo {
   medicine_name: string;
   general_use: string;
-  /** Cara kerja obat dalam bahasa awam. Boleh kosong. */
+  // Cara kerja obat dalam bahasa awam, boleh kosong.
   how_it_works?: string;
   dosage_as_written: string;
   frequency_as_written: string;
@@ -161,7 +161,7 @@ export interface MedicationInfo {
   prescription_instruction: string;
   important_general_information: string[];
   matched: boolean;
-  /** Asal penjelasan ini. */
+  // Asal penjelasan ini.
   source?: "openai" | "local_kb" | "unmatched";
 }
 
@@ -176,21 +176,20 @@ export type PrescriptionStatus =
 
 export interface PrescriptionRecord {
   id: string;
-  /** Resep selalu dibuat dari dalam konsultasi, bukan unggahan lepas. */
+  // Resep selalu dibuat dari dalam konsultasi, bukan unggahan lepas.
   consultationId: string;
   status: PrescriptionStatus;
-  /** Hanya terisi di browser. Gambar di-OCR lokal dan tidak pernah diunggah,
-   * jadi selalu null pada record yang datang dari API. */
+  // Hanya terisi di browser, selalu null pada record dari API.
   imageDataUrl: string | null;
   fileName: string;
   createdAt: string;
-  /** Teks mentah OCR, bisa dikoreksi pengguna sebelum di-parse. */
+  // Teks mentah OCR, bisa dikoreksi pengguna sebelum di-parse.
   rawText?: string;
   items: PrescriptionItem[];
   medications: MedicationInfo[];
 }
 
-/** Yang benar-benar disimpan server: semuanya kecuali preview gambar. */
+// Yang benar-benar disimpan server: semuanya kecuali preview gambar.
 export type StoredPrescriptionRecord = Omit<PrescriptionRecord, "imageDataUrl">;
 
 export function genId(prefix: string): string {

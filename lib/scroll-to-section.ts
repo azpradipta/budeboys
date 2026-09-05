@@ -1,9 +1,7 @@
 const PENDING_KEY = "healthalk:scrollToSection";
 
-/** Scroll ke section di halaman yang sama tanpa mengubah URL. `href="#id"`
- * asli akan melompat kasar, menambah history, dan menyisakan fragment di
- * address bar. Bila halaman tujuan belum ter-mount, fungsi ini pindah dulu
- * dan `consumePendingScroll` yang menyelesaikan. */
+// Scroll ke section tanpa mengubah URL, tidak seperti href="#id" biasa.
+// Bila halaman tujuan belum ter-mount, consumePendingScroll yang melanjutkan.
 export function scrollToSection(id: string, router: { push: (href: string) => void }) {
   const el = document.getElementById(id);
   if (el) {
@@ -15,8 +13,7 @@ export function scrollToSection(id: string, router: { push: (href: string) => vo
   router.push("/");
 }
 
-/** Dipanggil saat mount oleh halaman pemilik section, untuk menuntaskan
- * scroll yang tertunda dari klik navigasi antarhalaman. */
+// Menuntaskan scroll yang tertunda dari klik navigasi antarhalaman.
 export function consumePendingScroll() {
   const id = sessionStorage.getItem(PENDING_KEY);
   if (!id) return;

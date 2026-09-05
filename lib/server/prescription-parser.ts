@@ -1,14 +1,7 @@
 import { field, genId, type PrescriptionItem } from "@/lib/types";
 
-/**
- * Mengubah teks mentah OCR menjadi item resep terstruktur. LLM jauh lebih
- * baik membaca singkatan Latin ("R/", "S 3 dd 1", "a.c", "no. X") dan hasil
- * OCR tulisan tangan yang berantakan dibanding heuristik regex.
- *
- * Hanya teksnya yang dikirim; gambar tidak pernah keluar dari perangkat.
- * Butuh OPENAI_API_KEY. Mengembalikan null bila gagal agar pemanggil
- * fallback ke parser berbasis aturan.
- */
+// Mengubah teks OCR jadi item resep terstruktur, termasuk singkatan Latin resep.
+// Hanya teksnya yang dikirim, dan null dikembalikan bila gagal agar bisa fallback.
 
 const BASE_URL = "https://api.openai.com/v1";
 

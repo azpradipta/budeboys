@@ -1,11 +1,5 @@
-/**
- * Client Healthify Intelligence API (https://healthify.twenti.studio/docs):
- * intent, ekstraksi konteks, retrieval literatur ber-DOI, penyusunan jawaban,
- * dan safety check dalam satu panggilan.
- *
- * Butuh HEALTHIFY_API_KEY. Mengembalikan null (bukan throw) agar pemanggil
- * bisa fallback ke lib/health-ai.ts.
- */
+// Client Healthify Intelligence API (https://healthify.twenti.studio/docs).
+// Selalu mengembalikan null saat gagal agar pemanggil bisa fallback.
 
 const BASE_URL = (process.env.HEALTHIFY_API_BASE_URL || "https://healthify.twenti.studio").replace(
   /\/+$/,
@@ -69,8 +63,7 @@ export interface HealthifyQueryResult {
   request_id?: string | null;
 }
 
-/** Satu giliran percakapan. Id konsultasi kita dipakai langsung sebagai
- * `session_id` Healthify, yang dibuat atau dilanjutkan otomatis. */
+// Satu giliran percakapan. Id konsultasi kita dipakai sebagai session_id Healthify.
 export async function queryHealthify(params: {
   query: string;
   sessionId: string;
@@ -85,8 +78,7 @@ export async function queryHealthify(params: {
   }
 
   const controller = new AbortController();
-  // Healthify meminta timeout minimal 30 detik. Respons normal 2-10 detik,
-  // tapi retrieval, verifikasi DOI, dan LLM bisa jauh lebih lama.
+  // Healthify meminta timeout minimal 30 detik.
   const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {

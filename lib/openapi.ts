@@ -336,7 +336,7 @@ const paths = {
     },
     post: {
       tags: ["Consultations"],
-      summary: "Buat atau ganti konsultasi",
+      summary: "Membuat atau mengganti konsultasi",
       description:
         "Upsert berdasarkan `id`, jadi klien boleh memanggilnya berulang seiring sesi berjalan.",
       requestBody: {
@@ -375,7 +375,7 @@ const paths = {
     ],
     get: {
       tags: ["Consultations"],
-      summary: "Ambil satu konsultasi",
+      summary: "Mengambil satu konsultasi",
       responses: {
         200: {
           description: "Konsultasi yang diminta.",
@@ -392,7 +392,7 @@ const paths = {
     },
     put: {
       tags: ["Consultations"],
-      summary: "Ganti konsultasi",
+      summary: "Mengganti konsultasi",
       description: "`id` di body harus sama dengan parameter path.",
       requestBody: {
         required: true,
@@ -421,7 +421,7 @@ const paths = {
   "/api/consultation/turn": {
     post: {
       tags: ["Consultation AI"],
-      summary: "Jawab satu giliran percakapan",
+      summary: "Menjawab satu giliran percakapan",
       description:
         "Basa-basi dijawab langsung tanpa retrieval. Selain itu, Healthify dipanggil untuk jawaban berbasis evidence, dan bila tidak dikonfigurasi atau tak terjangkau, generator lokal yang menjawab. Field `source` menandai jalur yang dipakai.",
       requestBody: {
@@ -484,7 +484,7 @@ const paths = {
   "/api/consultation/summary": {
     post: {
       tags: ["Consultation AI"],
-      summary: "Ringkas konsultasi yang selesai",
+      summary: "Meringkas konsultasi yang selesai",
       description:
         "Mencoba endpoint summary Healthify, lalu fallback ke generator lokal yang disusun dari pesan-pesan sesi itu sendiri.",
       requestBody: {
@@ -533,7 +533,7 @@ const paths = {
           in: "query",
           required: false,
           schema: { type: "string" },
-          description: "Batasi daftar ke satu konsultasi saja.",
+          description: "Membatasi daftar ke satu konsultasi.",
         },
       ],
       responses: {
@@ -554,7 +554,7 @@ const paths = {
     },
     post: {
       tags: ["Prescriptions"],
-      summary: "Buat atau ganti resep",
+      summary: "Membuat atau mengganti resep",
       description:
         "Upsert berdasarkan `id`. `imageDataUrl` di body dibuang sebelum disimpan, karena server tidak pernah menyimpan fotonya.",
       requestBody: {
@@ -596,7 +596,7 @@ const paths = {
     ],
     get: {
       tags: ["Prescriptions"],
-      summary: "Ambil satu resep",
+      summary: "Mengambil satu resep",
       responses: {
         200: {
           description: "Resep yang diminta.",
@@ -613,7 +613,7 @@ const paths = {
     },
     put: {
       tags: ["Prescriptions"],
-      summary: "Ganti resep",
+      summary: "Mengganti resep",
       description: "`id` di body harus sama dengan parameter path.",
       requestBody: {
         required: true,
@@ -642,7 +642,7 @@ const paths = {
   "/api/prescription/parse": {
     post: {
       tags: ["Prescriptions"],
-      summary: "Ubah teks OCR jadi item terstruktur",
+      summary: "Mengubah teks OCR menjadi item terstruktur",
       description:
         "Browser mentranskrip foto dan hanya mengirim teksnya. LLM memecahnya jadi field obat sambil membaca singkatan resep (`R/`, `S`, `a.c`, `dd`, `1-0-1`). Parser berbasis aturan mengambil alih saat OpenAI tidak tersedia.",
       requestBody: {
@@ -690,7 +690,7 @@ const paths = {
   "/api/medication-info": {
     post: {
       tags: ["Prescriptions"],
-      summary: "Jelaskan obat yang sudah diverifikasi",
+      summary: "Menjelaskan obat yang sudah diverifikasi",
       description:
         "Menghasilkan penjelasan umum per item. Dosis, frekuensi, dan aturan pakai disalin dari resep, bukan dibuat model, dan response tidak pernah memuat saran dosis.",
       requestBody: {
