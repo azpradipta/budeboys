@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { useUser } from "@/lib/auth/use-user";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/auth/sign-out";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -64,8 +64,7 @@ export default function Navbar() {
   }, []);
 
   async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.push("/");
     router.refresh();
   }

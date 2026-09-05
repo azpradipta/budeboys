@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/accordion";
 import { useConsultationSessions, usePrescriptions } from "@/lib/store";
 import { useUser } from "@/lib/auth/use-user";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/auth/sign-out";
 import {
   ShieldCheck,
   Lock,
@@ -61,8 +61,7 @@ export default function ProfilePage() {
   const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.push("/");
     router.refresh();
   }
