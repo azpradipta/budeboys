@@ -17,7 +17,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * which requests reach this file at all, this list decides which of those get
  * redirected. Matcher patterns must be static literals, so they can't be
  * derived from this array. */
-const PROTECTED_PREFIXES = ["/consultations", "/prescriptions", "/profile"];
+const PROTECTED_PREFIXES = ["/consultations", "/prescriptions", "/profile", "/privacy"];
 
 /**
  * The OAuth callback must never go through the Supabase client here.

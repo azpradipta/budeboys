@@ -14,7 +14,7 @@ const columns = [
     title: "Akun",
     links: [
       { label: "Profil", href: "/profile" },
-      { label: "Privasi & Keamanan", href: "/profile#privacy" },
+      { label: "Privasi & Keamanan", href: "/privacy" },
     ],
   },
 ];

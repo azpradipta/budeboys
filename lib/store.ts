@@ -40,6 +40,15 @@ class ApiListStore<T extends Identifiable> {
     this.setCache(next);
   }
 
+  /** Kosongkan cache dan tandai belum pernah dimuat, lalu beri tahu
+   * subscriber. Dipakai setelah data dihapus di server, supaya UI tidak
+   * menampilkan record yang sebenarnya sudah tidak ada. */
+  reset() {
+    this.cache = null;
+    this.notFound.clear();
+    this.listeners.forEach((listener) => listener());
+  }
+
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -114,6 +123,13 @@ class ApiListStore<T extends Identifiable> {
 
 const sessionStore = new ApiListStore<ConsultationSession>("/api/consultations");
 const prescriptionStore = new ApiListStore<PrescriptionRecord>("/api/prescriptions");
+
+/** Buang seluruh data yang di-cache di memori. Dipanggil setelah pengguna
+ * menghapus datanya lewat halaman /privacy. */
+export function clearStoreCaches() {
+  sessionStore.reset();
+  prescriptionStore.reset();
+}
 
 // ---- Consultation sessions ----
 

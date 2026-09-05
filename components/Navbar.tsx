@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
+import { Menu, X, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -18,7 +18,6 @@ import {
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { useUser } from "@/lib/auth/use-user";
 import { signOut } from "@/lib/auth/sign-out";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { scrollToSection } from "@/lib/scroll-to-section";
 
 type NavLink = { title: string } & ({ href: string } | { scrollTo: string });
@@ -85,6 +84,7 @@ export default function Navbar() {
     : [
         { title: "Beranda", href: "/" },
         { title: "Tentang Kami", scrollTo: "tentang" },
+        { title: "Alur Layanan", scrollTo: "journey" },
       ];
 
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
@@ -151,17 +151,17 @@ export default function Navbar() {
                   <UserIcon className="size-4" />
                   Profil
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push("/privacy")}>
+                  <ShieldCheck className="size-4" />
+                  Privasi &amp; Keamanan
+                </DropdownMenuItem>
                 <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
                   <LogOut className="size-4" />
                   Keluar
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button variant="ghost" onClick={() => openLogin("/profile")}>
-              Masuk
-            </Button>
-          )}
+          ) : null}
 
           {user ? (
             <Button render={<Link href="/consultations" />}>Mulai Konsultasi</Button>
@@ -272,27 +272,15 @@ export default function Navbar() {
                 </Button>
               </>
             ) : (
-              <>
-                <Button
-                  variant="outline"
-                  className="w-full rounded-full"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    openLogin("/profile");
-                  }}
-                >
-                  Masuk
-                </Button>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    openLogin("/consultations");
-                  }}
-                >
-                  Mulai Konsultasi
-                </Button>
-              </>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  openLogin("/consultations");
+                }}
+              >
+                Mulai Konsultasi
+              </Button>
             )}
           </div>
         </div>
