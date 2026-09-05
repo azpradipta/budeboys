@@ -27,9 +27,10 @@ export default function Navbar() {
 
   const navLinks = [
     { title: "Beranda", href: "/" },
-    { title: "Fitur", href: "/fitur" },
-    { title: "Tentang Kami", href: "/tentang" },
-    { title: "Kontak", href: "/kontak" },
+    { title: "Konsultasi", href: "/consultations" },
+    { title: "Riwayat", href: "/consultations/history" },
+    { title: "Resep", href: "/prescriptions" },
+    { title: "Rekam Medis", href: "/records" },
   ];
 
   return (
@@ -45,7 +46,7 @@ export default function Navbar() {
           href="/"
           className="text-2xl font-bold tracking-tighter text-primary flex-shrink-0"
         >
-          HealthTech<span className="text-blue-600">.</span>
+          Healthalk<span className="text-primary/60">.</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -61,8 +62,10 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-          <Button variant="ghost">Masuk</Button>
-          <Button>Mulai Sekarang</Button>
+          <Button variant="ghost" render={<Link href="/profile" />}>
+            Profil
+          </Button>
+          <Button render={<Link href="/consultations" />}>Mulai Konsultasi</Button>
         </div>
 
         <div className="md:hidden flex-shrink-0 flex items-center">
@@ -116,10 +119,19 @@ export default function Navbar() {
           </nav>
 
           <div className="flex flex-col gap-3 mt-8 pt-6 border-t">
-            <Button variant="outline" className="w-full rounded-full">
-              Masuk
+            <Button
+              variant="outline"
+              className="w-full rounded-full"
+              render={<Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} />}
+            >
+              Profil
             </Button>
-            <Button className="w-full">Mulai Sekarang</Button>
+            <Button
+              className="w-full"
+              render={<Link href="/consultations" onClick={() => setIsMobileMenuOpen(false)} />}
+            >
+              Mulai Konsultasi
+            </Button>
           </div>
         </div>
       </div>

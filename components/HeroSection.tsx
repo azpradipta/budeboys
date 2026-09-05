@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, PlayCircle } from "lucide-react";
+import { ArrowRight, PlayCircle } from "lucide-react";
 
 export default function Hero() {
   return (
@@ -8,7 +9,7 @@ export default function Hero() {
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1.1] tracking-tight mb-6">
           Ceritakan Sekali. <br className="hidden md:block" /> Terhubung
           Sepenuhnya{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/80">
+          <span className="text-transparent bg-clip-text bg-linear-to-r from-primary to-primary/80">
             Hingga Sembuh.
           </span>
         </h1>
@@ -20,12 +21,12 @@ export default function Hero() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <Button size="lg">
+          <Button size="lg" render={<Link href="/consultations" />}>
             Mulai Analisis Gejala
             <ArrowRight className="ml-2 " />
           </Button>
 
-          <Button size="lg" variant="outline">
+          <Button size="lg" variant="outline" render={<Link href="#journey" />}>
             <PlayCircle className="mr-2  text-muted-foreground" />
             Cara Kerjanya
           </Button>
