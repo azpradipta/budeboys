@@ -8,10 +8,12 @@ import {
   mapHealthifyRisk,
   toHealthifyContext,
 } from "@/lib/server/healthify-mapping";
+import { generateAgentTurn } from "@/lib/server/consultation-agent";
 import { detectSmallTalk, generateLocalTurn, smallTalkReply } from "@/lib/health-ai";
 import type { HealthContext } from "@/lib/types";
 
-// Satu giliran konsultasi, Healthify dulu lalu fallback ke generator lokal.
+// Satu giliran konsultasi. Urutan: basa-basi, lalu Healthify (evidence),
+// lalu agen OpenAI (paham keluhan apa pun), lalu generator rule-based.
 // Wajib login karena memanggil API pihak ketiga yang berbayar per request.
 
 interface TurnRequestBody {
@@ -20,6 +22,7 @@ interface TurnRequestBody {
   healthContext: HealthContext;
   hasPriorContext: boolean;
   lastAssistantText?: string;
+  history?: { role: "user" | "assistant"; text: string }[];
 }
 
 export async function POST(req: NextRequest) {
@@ -64,6 +67,16 @@ export async function POST(req: NextRequest) {
       healthContext: mapHealthifyContext(result.health_context, body.healthContext),
       source: "healthify",
     });
+  }
+
+  const agentTurn = await generateAgentTurn({
+    query: body.query,
+    healthContext: body.healthContext,
+    history: body.history ?? [],
+    lastAssistantText: body.lastAssistantText ?? "",
+  });
+  if (agentTurn) {
+    return NextResponse.json({ ...agentTurn, source: "openai" });
   }
 
   const local = generateLocalTurn(

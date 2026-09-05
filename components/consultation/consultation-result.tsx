@@ -302,12 +302,20 @@ export function ConsultationResult({
       <div className="h-fit">
         <Card className="border-primary/20 shadow-sm sticky top-6">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <p className="text-xs font-bold tracking-wider text-primary uppercase">
                 Referensi Medis
               </p>
+              {summary.evidence_discussed.length > 0 && (
+                <Badge variant="secondary" className="shrink-0">
+                  {summary.evidence_discussed.length}
+                </Badge>
+              )}
             </div>
-            <EvidenceList evidence={summary.evidence_discussed} />
+            <EvidenceList
+              evidence={summary.evidence_discussed}
+              maxHeightClass="max-h-[calc(100vh-11rem)]"
+            />
           </CardContent>
         </Card>
       </div>

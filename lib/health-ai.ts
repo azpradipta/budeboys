@@ -11,7 +11,7 @@ import {
 } from "./types";
 import { detectEmergency, searchEvidence } from "./kb";
 
-// Fallback berbasis aturan, dipakai route konsultasi saat Healthify gagal.
+// Fallback berbasis aturan, dipakai route konsultasi saat RAG gagal.
 
 const SYMPTOM_KEYWORDS = [
   "demam",

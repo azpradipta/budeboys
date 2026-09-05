@@ -38,7 +38,7 @@ export function MessageBubble({ message }: { message: ConsultationMessage }) {
         </div>
         {message.evidence && message.evidence.length > 0 && (
           <div className="w-full pt-1">
-            <EvidenceList evidence={message.evidence} />
+            <EvidenceList evidence={message.evidence} maxHeightClass="max-h-72" />
           </div>
         )}
       </div>
