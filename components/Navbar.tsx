@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,35 @@ import { signOut } from "@/lib/auth/sign-out";
 import { scrollToSection } from "@/lib/scroll-to-section";
 
 type NavLink = { title: string } & ({ href: string } | { scrollTo: string });
+
+/**
+ * Proxy melempar kunjungan tanpa login ke "/?login=1&next=<path asal>".
+ *
+ * Parameternya dibaca lewat useSearchParams, bukan window.location sekali di
+ * mount: Navbar hidup di root layout dan tidak pernah ter-mount ulang, jadi
+ * setiap redirect yang datang lewat navigasi sisi klien akan terlewat.
+ * Itulah kenapa mengeklik tautan terproteksi dari footer sebelumnya terasa
+ * tidak melakukan apa-apa.
+ *
+ * Dipisah jadi komponen sendiri agar bisa dibungkus <Suspense>, syarat
+ * useSearchParams pada halaman yang dirender statis.
+ */
+function LoginRedirectWatcher({ onRequest }: { onRequest: (next: string) => void }) {
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (params.get("login") !== "1") return;
+    onRequest(params.get("next") ?? "/consultations");
+    // Dibersihkan lewat router, bukan history.replaceState, supaya state
+    // router ikut berubah. Kalau tidak, redirect kedua ke path yang sama
+    // dianggap tidak mengubah apa pun dan dialognya tidak terbuka lagi.
+    router.replace(pathname);
+  }, [params, pathname, router, onRequest]);
+
+  return null;
+}
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -46,19 +75,9 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
-  // Proxy melempar kunjungan tanpa login ke "/?login=1&next=<path asal>".
-  // Tangkap parameter itu lalu buka dialog login.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("login") === "1") {
-      const next = params.get("next") ?? "/consultations";
-      window.history.replaceState(null, "", window.location.pathname);
-      // Ditunda agar bukan setState langsung di badan effect.
-      Promise.resolve().then(() => {
-        setLoginNext(next);
-        setLoginOpen(true);
-      });
-    }
+  const handleLoginRequest = useCallback((next: string) => {
+    setLoginNext(next);
+    setLoginOpen(true);
   }, []);
 
   const openLogin = useCallback((next?: string) => {
@@ -285,6 +304,10 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      <Suspense fallback={null}>
+        <LoginRedirectWatcher onRequest={handleLoginRequest} />
+      </Suspense>
 
       <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} next={loginNext} />
     </>
