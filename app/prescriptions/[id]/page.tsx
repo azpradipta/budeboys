@@ -27,8 +27,7 @@ import { ArrowLeft, ScanLine, ImageOff, Stethoscope, Sparkles } from "lucide-rea
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
-  // Di-key agar seluruh state lokal ikut ter-reset lewat remount saat
-  // berpindah resep, tanpa effect "reset saat id berubah".
+  // Di-key agar state lokal ter-reset lewat remount saat berpindah resep.
   return <PrescriptionDetailBody key={params.id} id={params.id} />;
 }
 
@@ -42,7 +41,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
   const [finalizing, setFinalizing] = useState(false);
   const [parsing, setParsing] = useState(false);
 
-  // Revoke the blob URL when it changes or the page unmounts.
+  // Melepas blob URL saat nilainya berganti atau halaman unmount.
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -53,8 +52,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     savePrescription(next);
   }
 
-  // Jalankan OCR sekali saat record baru dibuka, memakai file sementara
-  // yang dioper dari langkah unggah.
+  // Menjalankan OCR sekali saat record baru dibuka.
   useEffect(() => {
     if (!record || record.status !== "UPLOADED" || ranOcr.current) return;
     ranOcr.current = true;
@@ -72,8 +70,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     recognizeRawText(file)
       .then((rawText) => {
         setPreviewUrl(objectUrl);
-        // Berhenti di teks mentah: pengguna mengoreksi dulu, baru LLM
-        // mengubahnya jadi field terstruktur.
+        // Berhenti di teks mentah agar pengguna bisa mengoreksi sebelum di-parse.
         savePrescription({ ...record, status: "TEXT_REVIEW", rawText });
       })
       .catch(() => {
@@ -89,9 +86,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     const rawText = (textRef.current?.value ?? record.rawText ?? "").trim();
     if (!rawText) return;
     setParsing(true);
-    // Selalu masuk ke tampilan field yang bisa diedit. Sekalipun LLM yakin,
-    // pengguna tetap perlu memeriksa nama obat, dosis, dan frekuensi sebelum
-    // penjelasan obat dibuat. Tombol "Konfirmasi Semua" jadi jalan cepatnya.
+    // Selalu lewat tampilan field yang bisa diedit, sekalipun LLM yakin.
     const advance = (items: PrescriptionItem[]) =>
       persist({ ...record, rawText, items, status: "NEEDS_VERIFICATION" });
     try {
@@ -264,9 +259,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           </div>
         </div>
       ) : record.status === "NEEDS_VERIFICATION" || record.status === "VERIFIED" ? (
-        // Both states show the editable fields. When everything is already
-        // verified, PrescriptionVerify just hides the amber banner and keeps
-        // its "Lihat Informasi Obat" button enabled.
+        // Kedua status menampilkan field yang bisa diedit.
         <PrescriptionVerify
           items={record.items}
           previewUrl={previewUrl}

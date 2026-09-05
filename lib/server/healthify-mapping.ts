@@ -16,10 +16,8 @@ import type {
   HealthifySummaryField,
 } from "./healthify-client";
 
-/**
- * Adapter antara bentuk response Healthify dan tipe milik aplikasi. Kalau
- * Healthify berubah, idealnya hanya file ini yang perlu disesuaikan.
- */
+// Adapter response Healthify ke tipe aplikasi. Satu-satunya file yang
+// perlu disesuaikan kalau bentuk response mereka berubah.
 
 const VALID_SOURCE_TYPES: SourceType[] = [
   "journal",
@@ -39,9 +37,7 @@ export function mapHealthifyEvidence(items: HealthifyEvidence[]): EvidenceRefere
     const source: EvidenceSource = {
       source_id: e.source_id,
       title: e.title,
-      // Healthify tidak mengirim authors; EvidenceList menyembunyikannya
-      // saat kosong.
-      authors: "",
+      authors: "", // Healthify tidak mengirimnya; EvidenceList sembunyikan saat kosong
       publication_year: e.published_year ?? new Date().getFullYear(),
       publisher: e.publisher ?? "Unknown",
       doi: e.doi ?? "",
@@ -62,9 +58,7 @@ function toSeverity(raw: string | null): Severity {
   return "unknown";
 }
 
-/** Menggabungkan konteks dari Healthify ke milik kita. Healthify tidak punya
- * `reported_conditions` dan `user_questions`, jadi keduanya memakai nilai
- * lokal, bukan dikarang. */
+// Menggabungkan konteks Healthify ke milik kita, tanpa mengarang field yang tidak ada di sana.
 export function mapHealthifyContext(
   hc: HealthifyHealthContext,
   previous: HealthContext
@@ -129,8 +123,7 @@ function pickValue<T>(field: HealthifySummaryField<T> | null | undefined, fallba
   return field?.value ?? fallback;
 }
 
-/** Memetakan summary Healthify ke ConsultationSummary. Provenance per field
- * dibuang karena belum ditampilkan di UI. */
+// Memetakan summary Healthify ke ConsultationSummary, tanpa provenance per field.
 export function mapHealthifySummary(summary: HealthifySummary) {
   return {
     chief_complaint: pickValue(summary.chief_complaint, "Tidak disebutkan secara eksplisit"),
@@ -156,9 +149,7 @@ export function mapHealthifySummary(summary: HealthifySummary) {
           publisher: "",
           doi: e.doi ?? "",
           abstract: "",
-          // Jangan mengarang tautan doi.org. `url` tervalidasi hanya ada di
-          // /query, tidak di /summary.
-          url: "",
+          url: "", // url tervalidasi hanya ada di /query, dan doi.org tidak boleh dikarang
           source_type: "journal" as const,
         },
         snippet: "",

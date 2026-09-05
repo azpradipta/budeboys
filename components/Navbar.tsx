@@ -46,8 +46,7 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
-  // Proxy melempar kunjungan tanpa login ke "/?login=1&next=<path asal>".
-  // Tangkap parameter itu lalu buka dialog login.
+  // Membaca "?login=1&next=" dari lemparan proxy lalu membuka dialog login.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("login") === "1") {
@@ -72,9 +71,7 @@ export default function Navbar() {
     router.refresh();
   }
 
-  // Belum login: selain "/" semuanya dilempar balik oleh proxy, jadi nav
-  // hanya berisi tautan marketing. Sudah login: tautan marketing tidak
-  // berguna karena "/" pun redirect ke aplikasi, jadi diganti section asli.
+  // Belum login hanya tautan marketing; sudah login diganti section aplikasi.
   const navLinks: NavLink[] = user
     ? [
         { title: "Konsultasi", href: "/consultations" },

@@ -1,19 +1,7 @@
--- Jalankan sekali di Supabase SQL Editor (Dashboard, SQL Editor, New query).
---
--- Strategi penyimpanan: tiap baris menyimpan objek aplikasinya utuh sebagai
--- JSONB di kolom `data`, mengikuti bentuk ConsultationSession dan
--- StoredPrescriptionRecord di lib/types.ts. Beberapa kolom dikeluarkan
--- terpisah untuk indexing, kepemilikan, dan Row Level Security.
---
--- RLS adalah lapisan penegak sesungguhnya: sekalipun kode aplikasi lupa
--- memfilter per user, Postgres tetap menolak membaca atau menulis baris yang
--- bukan milik pemanggil (auth.uid()).
---
--- Enkripsi at rest: bila APP_ENCRYPTION_KEY diisi, kolom `data` tidak berisi
--- JSON terbaca, melainkan envelope AES-256-GCM ({ __enc, iv, tag, ct }) dari
--- lib/server/crypto.ts yang terikat pada user_id barisnya. Route API
--- mengenkripsi saat menulis dan mendekripsi saat membaca, jadi aplikasi tetap
--- melihat bentuk yang sama.
+-- Skema awal Healthalk, dijalankan sekali lewat Supabase SQL Editor.
+-- Kolom `data` menyimpan objek aplikasi utuh sebagai JSONB, kolom lain untuk
+-- indexing dan kepemilikan. RLS yang menjaga tiap user hanya melihat barisnya.
+-- Bila APP_ENCRYPTION_KEY diisi, `data` berisi envelope AES-256-GCM, bukan JSON.
 
 create table if not exists public.consultations (
   id text primary key,

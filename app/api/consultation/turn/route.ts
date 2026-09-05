@@ -11,13 +11,8 @@ import {
 import { detectSmallTalk, generateLocalTurn, smallTalkReply } from "@/lib/health-ai";
 import type { HealthContext } from "@/lib/types";
 
-/**
- * Satu giliran konsultasi. Healthify dicoba lebih dulu; bila tidak
- * dikonfigurasi atau gagal, generator lokal di lib/health-ai.ts yang menjawab
- * agar percakapan tetap jalan.
- *
- * Wajib login karena memanggil API pihak ketiga yang berbayar per request.
- */
+// Satu giliran konsultasi, Healthify dulu lalu fallback ke generator lokal.
+// Wajib login karena memanggil API pihak ketiga yang berbayar per request.
 
 interface TurnRequestBody {
   query: string;
@@ -39,8 +34,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing_query" }, { status: 400 });
   }
 
-  // Basa-basi dijawab langsung tanpa retrieval dan tanpa memakai kuota
-  // Healthify, jadi evidence hanya muncul saat memang ditanyakan.
+  // Basa-basi dijawab langsung, tanpa retrieval dan tanpa memakai kuota Healthify.
   const social = detectSmallTalk(body.query);
   if (social) {
     return NextResponse.json({

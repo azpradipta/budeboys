@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * Pembungkus SpeechRecognition dan SpeechSynthesis bawaan browser, tersedia
- * di Chrome dan Edge. Pemanggil perlu memeriksa `supported` dan menyediakan
- * input teks sebagai gantinya.
- */
+// Pembungkus SpeechRecognition dan SpeechSynthesis bawaan browser (Chrome, Edge).
+// Flag `supported` menandai ketersediaannya agar pemanggil bisa pakai input teks.
 
 // Tipe ambient, karena lib.dom.d.ts belum memuat semuanya.
 interface SpeechRecognitionResultLike {
@@ -44,8 +41,7 @@ export function useSpeechRecognition(lang = "id-ID") {
   const onFinalRef = useRef<((text: string) => void) | null>(null);
 
   useEffect(() => {
-    // Hasil deteksi tidak berubah selama sesi, dan harus di sisi klien
-    // karena SSR tidak punya `window`.
+    // Deteksi hanya bisa di sisi klien karena SSR tidak punya `window`.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSupported(getRecognitionCtor() !== null);
   }, []);
@@ -108,8 +104,7 @@ export function speak(
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = opts.lang ?? "id-ID";
   utterance.onstart = () => opts.onStart?.();
-  // Terpanggil saat selesai normal maupun saat cancel(), dipakai pemanggil
-  // untuk mematikan status "AI sedang bicara".
+  // Terpanggil saat selesai normal maupun cancel(), penanda AI berhenti bicara.
   utterance.onend = () => opts.onEnd?.();
   utterance.onerror = () => opts.onEnd?.();
   window.speechSynthesis.speak(utterance);

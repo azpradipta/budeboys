@@ -21,8 +21,7 @@ import { formatDuration } from "@/lib/format";
 import type { ConsultationSession, DoctorValidation } from "@/lib/types";
 import { CheckCircle2, ShieldCheck, Share2, AlertTriangle, Clock } from "lucide-react";
 
-/** Nilai-nilai ini berarti pengguna tidak menyebutkannya, jadi fieldnya
- * disembunyikan alih-alih menampilkan "unknown". */
+// Penanda pengguna tidak menyebutkannya, agar field disembunyikan bukan "unknown".
 function isBlank(value: string | null | undefined): boolean {
   if (!value) return true;
   const t = value.trim().toLowerCase();

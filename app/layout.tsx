@@ -36,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="id" // Ubah ke "id" jika target utama bahasa Indonesia
+      lang="id"
       className={cn("font-sans", inter.variable, manropeHeading.variable)}
     >
       <body

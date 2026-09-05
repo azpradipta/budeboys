@@ -3,9 +3,7 @@
 import { useEffect } from "react";
 import { consumePendingScroll } from "@/lib/scroll-to-section";
 
-/** Finishes a same-page-section nav click that had to navigate here first
- * (see lib/scroll-to-section.ts). Mounted once on the page that owns the
- * sections (Home). */
+// Menuntaskan scroll ke section yang sempat harus berpindah halaman dulu.
 export function ScrollToPending() {
   useEffect(() => {
     consumePendingScroll();

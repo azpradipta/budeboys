@@ -63,8 +63,7 @@ export function ImageCropper({
   }, [file]);
 
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    // Seed a completed crop so "Pakai bagian ini" works even if the user
-    // doesn't touch the box.
+    // Crop awal diisi agar tombol lanjut tetap jalan walau kotaknya tak disentuh.
     const { width, height } = e.currentTarget;
     setCompleted({
       unit: "px",
@@ -107,11 +106,8 @@ export function ImageCropper({
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black/90 p-4">
         {src && (
           <ReactCrop
-            // Batas tinggi dipasang di ReactCrop, bukan di <img>. Aturan
-            // `.ReactCrop__child-wrapper > img { max-height: inherit }` milik
-            // library mengalahkan class di gambar, jadi gambar baru mengecil
-            // kalau ReactCrop-nya yang dibatasi. calc() menyisakan ruang
-            // untuk header dan footer.
+            // Batas tinggi harus di ReactCrop, karena CSS library menimpa
+            // max-height yang dipasang langsung di <img>.
             className="max-h-[calc(100vh-9rem)] max-w-full"
             crop={crop}
             onChange={(_px, percent) => setCrop(percent)}
