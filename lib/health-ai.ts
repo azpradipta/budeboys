@@ -9,14 +9,15 @@ import {
   type RiskLevel,
   type UtteranceIntent,
 } from "./types";
-import { detectEmergency, searchEvidence } from "./kb";
+import { detectEmergency } from "./kb";
 
 /**
- * Local, rule-based stand-in for the Conversation Intelligence + Health
- * Evidence Engine described in docs/prd.md (Section 9-24). It exists so the
- * full journey is demoable end-to-end from the frontend alone. Every function
- * here is a thin, swappable seam — replace the body with a real API call and
- * the pages above don't need to change.
+ * Local, rule-based stand-in for the Conversation Intelligence layer
+ * described in docs/prd.md (Section 9-13, 20-24) — intent classification,
+ * context extraction, and response templating happen client-side. Evidence
+ * itself (Section 14-19) is fetched from `/api/evidence/search`, which
+ * proxies the team's real RAG service (see docs/rag-api-contract.md) and
+ * falls back to a local demo KB if that service isn't reachable.
  */
 
 const SYMPTOM_KEYWORDS = [
@@ -134,13 +135,32 @@ export interface AssistantTurn {
   insufficientEvidence: boolean;
 }
 
+/** Calls our /api/evidence/search proxy (real RAG service, with local
+ * fallback — see docs/rag-api-contract.md). Never throws: a network failure
+ * just yields no evidence, which the caller already treats as
+ * INSUFFICIENT_EVIDENCE (PRD 4.2 — never fabricate a citation). */
+async function fetchEvidence(query: string): Promise<EvidenceReference[]> {
+  try {
+    const res = await fetch("/api/evidence/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { evidence?: EvidenceReference[] };
+    return data.evidence ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /** Generates the assistant's reply for one user utterance, given the running
  * health context. Mirrors the pipeline in Section 14 & 20-24. */
-export function generateAssistantTurn(
+export async function generateAssistantTurn(
   utterance: string,
   context: HealthContext,
   hasPriorContext: boolean
-): AssistantTurn {
+): Promise<AssistantTurn> {
   const intent = classifyIntent(utterance, hasPriorContext);
   const safety = safetyCheck(utterance);
 
@@ -169,7 +189,7 @@ export function generateAssistantTurn(
     intent === "MEDICAL_INFORMATION_REQUEST" || intent === "SYMPTOM_DESCRIPTION";
 
   const query = `${context.chief_complaint ?? ""} ${context.symptoms.join(" ")} ${utterance}`;
-  const evidence = needsEvidence ? searchEvidence(query) : [];
+  const evidence = needsEvidence ? await fetchEvidence(query) : [];
 
   if (needsEvidence && evidence.length === 0) {
     return {

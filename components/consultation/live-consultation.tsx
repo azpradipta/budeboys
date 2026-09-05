@@ -23,22 +23,34 @@ export function LiveConsultation({
 }) {
   const [draft, setDraft] = useState("");
   const [useTextMode, setUseTextMode] = useState(false);
+  const [pending, setPending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { supported, listening, interimText, start, stop } = useSpeechRecognition();
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [session.messages.length, interimText]);
+  }, [session.messages.length, interimText, pending]);
 
   useEffect(() => () => cancelSpeech(), []);
 
-  function handleUtterance(text: string) {
-    if (!text.trim()) return;
+  async function handleUtterance(text: string) {
+    if (!text.trim() || pending) return;
 
     const hasPriorContext = session.messages.some((m) => m.role === "user");
     const userMessage = createMessage("user", text.trim());
     const nextContext = extractHealthContext(session.healthContext, text);
-    const turn = generateAssistantTurn(text, nextContext, hasPriorContext);
+
+    // Show the user's own message immediately — the evidence lookup below
+    // is a real network call now, no reason to make them wait to see it.
+    const withUserMessage: ConsultationSession = {
+      ...session,
+      messages: [...session.messages, userMessage],
+      healthContext: nextContext,
+    };
+    onUpdate(withUserMessage);
+    setPending(true);
+
+    const turn = await generateAssistantTurn(text, nextContext, hasPriorContext);
     const assistantMessage = createMessage("assistant", turn.text, {
       intent: turn.intent,
       evidence: turn.evidence,
@@ -47,11 +59,10 @@ export function LiveConsultation({
     });
 
     onUpdate({
-      ...session,
-      messages: [...session.messages, userMessage, assistantMessage],
-      healthContext: nextContext,
+      ...withUserMessage,
+      messages: [...withUserMessage.messages, assistantMessage],
     });
-
+    setPending(false);
     speak(turn.text);
   }
 
@@ -61,12 +72,12 @@ export function LiveConsultation({
       return;
     }
     cancelSpeech();
-    start((text) => handleUtterance(text));
+    start((text) => void handleUtterance(text));
   }
 
   function handleSubmitText(e: React.FormEvent) {
     e.preventDefault();
-    handleUtterance(draft);
+    void handleUtterance(draft);
     setDraft("");
   }
 
@@ -97,6 +108,13 @@ export function LiveConsultation({
               </p>
             </div>
           )}
+          {pending && (
+            <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm bg-muted px-3.5 py-2 text-sm text-muted-foreground w-fit">
+              <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.2s]" />
+              <span className="size-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.1s]" />
+              <span className="size-1.5 animate-bounce rounded-full bg-current" />
+            </div>
+          )}
         </div>
 
         <div className="border-t border-border p-4">
@@ -107,12 +125,17 @@ export function LiveConsultation({
                 onClick={toggleMic}
                 className="size-14 rounded-full"
                 variant={listening ? "destructive" : "default"}
+                disabled={pending}
                 aria-label={listening ? "Berhenti bicara" : "Mulai bicara"}
               >
                 {listening ? <Square className="size-5" /> : <Mic className="size-6" />}
               </Button>
               <p className="text-xs text-muted-foreground">
-                {listening ? "Mendengarkan… tekan untuk berhenti" : "Tekan untuk berbicara"}
+                {pending
+                  ? "Mencari evidence…"
+                  : listening
+                    ? "Mendengarkan… tekan untuk berhenti"
+                    : "Tekan untuk berbicara"}
               </p>
               <button
                 type="button"
@@ -128,9 +151,10 @@ export function LiveConsultation({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Ketik keluhan Anda…"
+                disabled={pending}
                 autoFocus
               />
-              <Button type="submit" size="icon" aria-label="Kirim">
+              <Button type="submit" size="icon" aria-label="Kirim" disabled={pending}>
                 <Send className="size-4" />
               </Button>
               {supported && (

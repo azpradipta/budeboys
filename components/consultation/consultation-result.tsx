@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,15 +16,9 @@ import {
 import { EvidenceList } from "@/components/shared/evidence-list";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { DoctorValidationCard } from "./doctor-validation-card";
+import { PrescriptionPhase } from "./prescription-phase";
 import type { ConsultationSession, DoctorValidation } from "@/lib/types";
-import {
-  CheckCircle2,
-  ShieldCheck,
-  Share2,
-  ArrowRight,
-  AlertTriangle,
-  Pill,
-} from "lucide-react";
+import { CheckCircle2, ShieldCheck, Share2, AlertTriangle } from "lucide-react";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -156,20 +149,7 @@ export function ConsultationResult({
 
         <DoctorValidationCard validation={session.doctorValidation} onSave={saveValidation} />
 
-        {session.doctorValidation && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <Pill className="size-4 text-primary" />
-                Validasi dokter selesai — lanjutkan ke pemahaman resep.
-              </div>
-              <Button size="sm" render={<Link href="/prescriptions" />}>
-                Unggah Resep
-                <ArrowRight className="size-3.5" />
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {session.doctorValidation && <PrescriptionPhase consultationId={session.id} />}
       </div>
 
       <Card className="h-fit">

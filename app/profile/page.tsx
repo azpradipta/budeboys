@@ -1,9 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
@@ -12,13 +14,15 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { useConsultationSessions, usePrescriptions } from "@/lib/store";
+import { useUser } from "@/lib/auth/use-user";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   ShieldCheck,
   Lock,
   Eye,
   Database,
-  UserCog,
   History,
+  LogOut,
 } from "lucide-react";
 
 const PRIVACY_ITEMS = [
@@ -45,10 +49,23 @@ const PRIVACY_ITEMS = [
 ];
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const user = useUser();
   const stats = {
     sessions: useConsultationSessions().length,
     prescriptions: usePrescriptions().length,
   };
+
+  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
+  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-14">
@@ -58,21 +75,21 @@ export default function ProfilePage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Avatar size="lg">
-              <AvatarFallback>PD</AvatarFallback>
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="flex items-center gap-1.5 font-medium text-foreground">
-                <UserCog className="size-4 text-primary" />
-                Pengguna Demo
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Akun prototype — belum terhubung ke sistem autentikasi sungguhan.
-              </p>
+              <p className="font-medium text-foreground">{displayName || "Memuat…"}</p>
+              <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{stats.sessions} konsultasi</Badge>
             <Badge variant="secondary">{stats.prescriptions} resep</Badge>
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              <LogOut className="size-3.5" />
+              Keluar
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -1,13 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { LoginDialog } from "@/components/auth/login-dialog";
+import { useUser } from "@/lib/auth/use-user";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginNext, setLoginNext] = useState("/consultations");
+  const user = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,13 +43,43 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
+  // Proxy redirects unauthenticated visits to protected pages back to
+  // "/?login=1&next=<original path>" — pick that up and open the dialog.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("login") === "1") {
+      const next = params.get("next") ?? "/consultations";
+      window.history.replaceState(null, "", window.location.pathname);
+      // Deferred so this isn't a bare setState call in the effect body.
+      Promise.resolve().then(() => {
+        setLoginNext(next);
+        setLoginOpen(true);
+      });
+    }
+  }, []);
+
+  const openLogin = useCallback((next?: string) => {
+    if (next) setLoginNext(next);
+    setLoginOpen(true);
+  }, []);
+
+  async function handleSignOut() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  }
+
   const navLinks = [
     { title: "Beranda", href: "/" },
     { title: "Konsultasi", href: "/consultations" },
     { title: "Riwayat", href: "/consultations/history" },
     { title: "Resep", href: "/prescriptions" },
-    { title: "Rekam Medis", href: "/records" },
   ];
+
+  const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
+  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   return (
     <>
@@ -44,7 +92,7 @@ export default function Navbar() {
       >
         <Link
           href="/"
-          className="text-2xl font-bold tracking-tighter text-primary flex-shrink-0"
+          className="text-2xl font-bold tracking-tighter text-primary shrink-0"
         >
           Healthalk<span className="text-primary/60">.</span>
         </Link>
@@ -61,14 +109,47 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden md:flex items-center gap-3 flex-shrink-0">
-          <Button variant="ghost" render={<Link href="/profile" />}>
-            Profil
-          </Button>
-          <Button render={<Link href="/consultations" />}>Mulai Konsultasi</Button>
+        <div className="hidden md:flex items-center gap-3 shrink-0">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<Button variant="ghost" className="gap-2 px-1.5" />}
+              >
+                <Avatar size="sm">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <span className="max-w-32 truncate text-sm">{displayName}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  <UserIcon className="size-4" />
+                  Profil
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+                  <LogOut className="size-4" />
+                  Keluar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="ghost" onClick={() => openLogin("/profile")}>
+              Masuk
+            </Button>
+          )}
+
+          {user ? (
+            <Button render={<Link href="/consultations" />}>Mulai Konsultasi</Button>
+          ) : (
+            <Button onClick={() => openLogin("/consultations")}>Mulai Konsultasi</Button>
+          )}
         </div>
 
-        <div className="md:hidden flex-shrink-0 flex items-center">
+        <div className="md:hidden shrink-0 flex items-center">
           <Button
             variant="ghost"
             size="icon"
@@ -81,14 +162,14 @@ export default function Navbar() {
       </header>
 
       <div
-        className={`fixed inset-0 bg-black/40 z-[60] transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 bg-black/40 z-60 transition-opacity duration-300 md:hidden ${
           isMobileMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
 
       <div
-        className={`fixed top-0 right-0 h-full w-[300px] bg-white z-[70] shadow-xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-75 bg-white z-70 shadow-xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${
           isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -119,22 +200,70 @@ export default function Navbar() {
           </nav>
 
           <div className="flex flex-col gap-3 mt-8 pt-6 border-t">
-            <Button
-              variant="outline"
-              className="w-full rounded-full"
-              render={<Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} />}
-            >
-              Profil
-            </Button>
-            <Button
-              className="w-full"
-              render={<Link href="/consultations" onClick={() => setIsMobileMenuOpen(false)} />}
-            >
-              Mulai Konsultasi
-            </Button>
+            {user ? (
+              <>
+                <div className="flex items-center gap-2 px-1 pb-2">
+                  <Avatar size="sm">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-sm font-medium">{displayName}</span>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full"
+                  render={<Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} />}
+                >
+                  Profil
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    void handleSignOut();
+                  }}
+                >
+                  <LogOut className="size-4" />
+                  Keluar
+                </Button>
+                <Button
+                  className="w-full"
+                  render={
+                    <Link href="/consultations" onClick={() => setIsMobileMenuOpen(false)} />
+                  }
+                >
+                  Mulai Konsultasi
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    openLogin("/profile");
+                  }}
+                >
+                  Masuk
+                </Button>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    openLogin("/consultations");
+                  }}
+                >
+                  Mulai Konsultasi
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} next={loginNext} />
     </>
   );
 }

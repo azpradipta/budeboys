@@ -175,13 +175,24 @@ export type PrescriptionStatus =
 
 export interface PrescriptionRecord {
   id: string;
+  /** Links this prescription to the consultation it was uploaded from —
+   * prescriptions can only be created from within a consultation's Phase 3,
+   * never as a standalone upload. */
+  consultationId: string;
   status: PrescriptionStatus;
+  /** Client-side only — the raw image is processed locally for OCR and is
+   * never sent to or persisted by the server. Always null once this record
+   * comes back from the API. */
   imageDataUrl: string | null;
   fileName: string;
   createdAt: string;
   items: PrescriptionItem[];
   medications: MedicationInfo[];
 }
+
+/** Shape actually persisted server-side — same as PrescriptionRecord minus
+ * the client-only image preview. */
+export type StoredPrescriptionRecord = Omit<PrescriptionRecord, "imageDataUrl">;
 
 export function genId(prefix: string): string {
   const rand =

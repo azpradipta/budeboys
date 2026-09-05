@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
@@ -8,51 +8,71 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { PrescriptionVerify } from "@/components/prescription/prescription-verify";
 import { MedicationInfoCard } from "@/components/prescription/medication-info-card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { savePrescription, usePrescription } from "@/lib/store";
-import { getMedicationInfo, needsVerification, runOcr } from "@/lib/prescription-ai";
+import { getMedicationInfo, needsVerification } from "@/lib/prescription-ai";
+import { recognizePrescription } from "@/lib/ocr-client";
+import { takePendingImage } from "@/lib/pending-image";
 import type { PrescriptionRecord } from "@/lib/types";
-import { ArrowLeft, ScanLine, ArrowRight } from "lucide-react";
+import { ArrowLeft, ScanLine, ArrowRight, ImageOff } from "lucide-react";
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
-  const record = usePrescription(params.id);
-  const ranOcr = useRef(false);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Keyed so every field of local state (previewUrl, imageGone, the ranOcr
+  // guard) naturally resets via remount when navigating between different
+  // prescriptions — no manual "reset state on id change" effect needed.
+  return <PrescriptionDetailBody key={params.id} id={params.id} />;
+}
 
+function PrescriptionDetailBody({ id }: { id: string }) {
+  const record = usePrescription(id);
+  const ranOcr = useRef(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageGone, setImageGone] = useState(false);
+
+  // Revoke the blob URL when it changes or the page unmounts.
   useEffect(() => {
-    ranOcr.current = false;
-    const pending = timers.current;
-    return () => pending.forEach(clearTimeout);
-  }, [params.id]);
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   function persist(next: PrescriptionRecord) {
     savePrescription(next);
   }
 
-  // Run OCR once when a freshly uploaded record is opened.
+  // Run real, client-side OCR once when a freshly uploaded record is opened
+  // — consumes the transient in-memory file handed off from Phase 3.
   useEffect(() => {
     if (!record || record.status !== "UPLOADED" || ranOcr.current) return;
     ranOcr.current = true;
+
+    const file = takePendingImage(record.id);
+    if (!file) {
+      // Deferred (not a bare setState-then-return in the effect body) —
+      // consistent with the async continuations below.
+      Promise.resolve().then(() => setImageGone(true));
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
     savePrescription({ ...record, status: "PROCESSING" });
 
-    const timer = setTimeout(() => {
-      const items = runOcr(record.fileName);
-      const afterOcr: PrescriptionRecord = { ...record, status: "PROCESSING", items };
-      savePrescription(afterOcr);
-
-      const timer2 = setTimeout(() => {
+    recognizePrescription(file)
+      .then((items) => {
+        setPreviewUrl(objectUrl);
         savePrescription({
-          ...afterOcr,
+          ...record,
           status: needsVerification(items) ? "NEEDS_VERIFICATION" : "VERIFIED",
+          items,
         });
-      }, 900);
-      timers.current.push(timer2);
-    }, 1100);
-    timers.current.push(timer);
-    // Intentionally keyed on id/status only: `record` itself is a fresh
-    // object every store update, so including it would re-run this on every
-    // OCR step instead of once per UPLOADED record.
+      })
+      .catch(() => {
+        URL.revokeObjectURL(objectUrl);
+        savePrescription({ ...record, status: "UPLOADED" });
+        setImageGone(true); // OCR failed — treat like "needs a fresh photo"
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record?.id, record?.status]);
 
@@ -78,19 +98,21 @@ export default function PrescriptionDetailPage() {
           Resep tidak ditemukan
         </h1>
         <Button className="mt-6" render={<Link href="/prescriptions" />}>
-          Unggah Resep Baru
+          Kembali ke Riwayat Resep
         </Button>
       </div>
     );
   }
 
+  const backToConsultation = `/consultations/${record.consultationId}`;
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
       <Link
-        href="/prescriptions/history"
+        href={backToConsultation}
         className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
       >
-        <ArrowLeft className="size-3.5" /> Riwayat Resep
+        <ArrowLeft className="size-3.5" /> Kembali ke Konsultasi
       </Link>
       <PageHeader
         title="Pemahaman Resep"
@@ -98,17 +120,32 @@ export default function PrescriptionDetailPage() {
         actions={<StatusBadge status={record.status as "PROCESSING"} />}
       />
 
-      {record.status === "PROCESSING" || record.status === "UPLOADED" ? (
+      {imageGone ? (
+        <Alert variant="destructive">
+          <ImageOff className="size-4" />
+          <AlertTitle>Gambar tidak lagi tersedia</AlertTitle>
+          <AlertDescription>
+            Foto resep hanya diproses sekali di perangkat Anda dan tidak disimpan — sepertinya
+            halaman ini dibuka ulang. Silakan unggah ulang dari konsultasinya.
+            <div className="mt-3">
+              <Button size="sm" render={<Link href={backToConsultation} />}>
+                Kembali ke Konsultasi
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : record.status === "PROCESSING" || record.status === "UPLOADED" ? (
         <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-border py-24">
           <ScanLine className="size-8 animate-pulse text-primary" />
           <p className="text-sm text-muted-foreground">
-            Memproses gambar & membaca teks resep…
+            Memproses gambar & membaca teks resep di perangkat Anda…
           </p>
         </div>
       ) : record.status === "NEEDS_VERIFICATION" ? (
         <PrescriptionVerify
           items={record.items}
-          imageDataUrl={record.imageDataUrl}
+          previewUrl={previewUrl}
+          retakeHref={backToConsultation}
           onChangeItems={(items) => persist({ ...record, items })}
           onConfirmAll={finalizeMedications}
         />

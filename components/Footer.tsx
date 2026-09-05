@@ -7,8 +7,7 @@ const columns = [
     links: [
       { label: "Mulai Konsultasi", href: "/consultations" },
       { label: "Riwayat Konsultasi", href: "/consultations/history" },
-      { label: "Unggah Resep", href: "/prescriptions" },
-      { label: "Rekam Medis", href: "/records" },
+      { label: "Resep Saya", href: "/prescriptions" },
     ],
   },
   {

@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import {
   MessageCircle,
   History,
-  ShieldCheck,
   ScanLine,
   ArrowRight,
   BadgeCheck,
@@ -25,19 +24,14 @@ const quickActions = [
   },
   {
     title: "Riwayat Konsultasi",
-    description: "Lihat kembali sesi konsultasi dan ringkasan yang pernah dibuat.",
+    description:
+      "Lihat kembali seluruh perjalanan tiap sesi: konsultasi, validasi dokter, hingga resep.",
     href: "/consultations/history",
     icon: History,
   },
   {
-    title: "Rekam Medis",
-    description: "Akses rekam kesehatan Anda yang tersimpan terenkripsi.",
-    href: "/records",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Unggah Resep",
-    description: "Foto resep dokter untuk dipahami: dosis, aturan pakai, dan info obat.",
+    title: "Resep Saya",
+    description: "Lihat resep yang sudah diunggah dari sesi konsultasi Anda.",
     href: "/prescriptions",
     icon: ScanLine,
   },
@@ -85,7 +79,7 @@ export default function Home() {
       <HeroSection />
 
       <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           {quickActions.map((action) => (
             <Card key={action.href} className="transition-shadow hover:shadow-md">
               <CardHeader>

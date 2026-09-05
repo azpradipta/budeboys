@@ -20,12 +20,17 @@ export function PrescriptionVerify({
   items,
   onChangeItems,
   onConfirmAll,
-  imageDataUrl,
+  previewUrl,
+  retakeHref,
 }: {
   items: PrescriptionItem[];
   onChangeItems: (items: PrescriptionItem[]) => void;
   onConfirmAll: () => void;
-  imageDataUrl: string | null;
+  /** Object URL derived client-side from the transient upload File — never
+   * the record itself, which never carries the raw image (see
+   * lib/pending-image.ts). */
+  previewUrl: string | null;
+  retakeHref: string;
 }) {
   function updateField(itemIdx: number, key: keyof PrescriptionItem, value: string) {
     const next = items.map((item, i) => {
@@ -56,12 +61,12 @@ export function PrescriptionVerify({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      {imageDataUrl && (
+      {previewUrl && (
         <Card className="h-fit">
           <CardContent>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={imageDataUrl}
+              src={previewUrl}
               alt="Foto resep"
               className="w-full rounded-lg border border-border object-cover"
             />
@@ -96,7 +101,7 @@ export function PrescriptionVerify({
         ))}
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
-          <Button variant="outline" render={<Link href="/prescriptions" />}>
+          <Button variant="outline" render={<Link href={retakeHref} />}>
             <Camera className="size-3.5" />
             Retake Photo
           </Button>
