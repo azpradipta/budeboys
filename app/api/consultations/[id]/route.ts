@@ -22,7 +22,7 @@ export async function GET(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  return NextResponse.json(decryptFromStorage(data.data as ConsultationSession));
+  return NextResponse.json(decryptFromStorage(data.data as ConsultationSession, user.id));
 }
 
 export async function PUT(
@@ -46,12 +46,12 @@ export async function PUT(
     .upsert({
       id,
       user_id: user.id,
-      data: encryptForStorage(body),
+      data: encryptForStorage(body, user.id),
       updated_at: new Date().toISOString(),
     })
     .select("data")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json(decryptFromStorage(data.data as ConsultationSession));
+  return NextResponse.json(decryptFromStorage(data.data as ConsultationSession, user.id));
 }

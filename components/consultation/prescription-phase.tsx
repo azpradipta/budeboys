@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { ImageCropper } from "@/components/prescription/image-cropper";
 import { checkImageQuality } from "@/lib/prescription-ai";
 import { stashPendingImage } from "@/lib/pending-image";
 import { savePrescription, usePrescriptionsForConsultation } from "@/lib/store";
@@ -21,6 +22,7 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toCrop, setToCrop] = useState<File | null>(null);
   const prescriptions = usePrescriptionsForConsultation(consultationId);
 
   function handleFile(file: File) {
@@ -30,7 +32,12 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
       setError(quality.reason ?? "Kualitas gambar kurang baik.");
       return;
     }
+    // Crop first so OCR only sees the relevant part of the photo.
+    setToCrop(file);
+  }
 
+  function handleCropped(file: File) {
+    setToCrop(null);
     setLoading(true);
     const id = genId("rx");
     // The raw file stays in memory only — handed off to the OCR step on
@@ -115,10 +122,18 @@ export function PrescriptionPhase({ consultationId }: { consultationId: string }
         </Button>
 
         <p className="text-[11px] text-muted-foreground">
-          Foto diproses langsung di perangkat Anda (OCR client-side) — gambar asli tidak pernah
-          dikirim atau disimpan di server, hanya hasil bacaan resep yang tersimpan terenkripsi.
+          Gambar dibaca (OCR) langsung di perangkat Anda dan tidak pernah dikirim ke server —
+          hanya teks hasil bacaannya yang dipakai untuk menyusun resep.
         </p>
       </CardContent>
+
+      {toCrop && (
+        <ImageCropper
+          file={toCrop}
+          onDone={handleCropped}
+          onCancel={() => setToCrop(null)}
+        />
+      )}
     </Card>
   );
 }

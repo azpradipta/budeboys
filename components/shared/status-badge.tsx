@@ -8,6 +8,7 @@ import {
   Circle,
   ScanLine,
   ImageOff,
+  FileText,
 } from "lucide-react";
 
 type Status =
@@ -19,6 +20,7 @@ type Status =
   | "UPLOADED"
   | "IMAGE_QUALITY_FAILED"
   | "PROCESSING"
+  | "TEXT_REVIEW"
   | "NEEDS_VERIFICATION"
   | "VERIFIED";
 
@@ -34,6 +36,7 @@ const CONFIG: Record<
   UPLOADED: { label: "Terunggah", variant: "secondary", icon: Circle },
   IMAGE_QUALITY_FAILED: { label: "Kualitas Gambar Kurang", variant: "destructive", icon: ImageOff },
   PROCESSING: { label: "Memproses OCR", variant: "secondary", icon: ScanLine },
+  TEXT_REVIEW: { label: "Tinjau Teks", variant: "secondary", icon: FileText },
   NEEDS_VERIFICATION: { label: "Perlu Verifikasi", variant: "destructive", icon: CircleAlert },
   VERIFIED: { label: "Terverifikasi", variant: "outline", icon: CircleCheck },
 };

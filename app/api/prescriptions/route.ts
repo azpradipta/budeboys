@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const records = data.map((row) =>
-    toClientShape(decryptFromStorage(row.data as StoredPrescriptionRecord))
+    toClientShape(decryptFromStorage(row.data as StoredPrescriptionRecord, user.id))
   );
   return NextResponse.json(records);
 }
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       id: body.id,
       user_id: user.id,
       consultation_id: body.consultationId,
-      data: encryptForStorage(toStore),
+      data: encryptForStorage(toStore, user.id),
       updated_at: new Date().toISOString(),
     })
     .select("data")
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json(
-    toClientShape(decryptFromStorage(data.data as StoredPrescriptionRecord)),
+    toClientShape(decryptFromStorage(data.data as StoredPrescriptionRecord, user.id)),
     { status: 201 }
   );
 }

@@ -9,6 +9,12 @@
 -- RLS is the real enforcement layer: even if application code had a bug and
 -- forgot to filter by user, Postgres itself refuses to return or write rows
 -- that don't belong to the requesting user (auth.uid()).
+--
+-- Encryption at rest: when APP_ENCRYPTION_KEY is set, the `data` column does
+-- NOT hold readable JSON — it holds an AES-256-GCM envelope
+-- ({ __enc, iv, tag, ct }) produced by lib/server/crypto.ts and bound to the
+-- row's user_id. The API routes encrypt on write / decrypt on read, so the
+-- app still sees the same shapes; only the bytes in Postgres are ciphertext.
 
 create table if not exists public.consultations (
   id text primary key,

@@ -157,18 +157,23 @@ export interface PrescriptionItem {
 export interface MedicationInfo {
   medicine_name: string;
   general_use: string;
+  /** Brief lay explanation of how it works. May be empty. */
+  how_it_works?: string;
   dosage_as_written: string;
   frequency_as_written: string;
   route: string;
   prescription_instruction: string;
   important_general_information: string[];
   matched: boolean;
+  /** Where the explanation came from. */
+  source?: "openai" | "local_kb" | "unmatched";
 }
 
 export type PrescriptionStatus =
   | "UPLOADED"
   | "IMAGE_QUALITY_FAILED"
   | "PROCESSING"
+  | "TEXT_REVIEW"
   | "NEEDS_VERIFICATION"
   | "VERIFIED"
   | "COMPLETED";
@@ -186,6 +191,9 @@ export interface PrescriptionRecord {
   imageDataUrl: string | null;
   fileName: string;
   createdAt: string;
+  /** Raw OCR transcription (the user can correct it before it's parsed).
+   * This is text only — the image itself never leaves the client. */
+  rawText?: string;
   items: PrescriptionItem[];
   medications: MedicationInfo[];
 }

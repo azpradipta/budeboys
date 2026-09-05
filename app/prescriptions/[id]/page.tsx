@@ -8,14 +8,22 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { PrescriptionVerify } from "@/components/prescription/prescription-verify";
 import { MedicationInfoCard } from "@/components/prescription/medication-info-card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { savePrescription, usePrescription } from "@/lib/store";
-import { getMedicationInfo, needsVerification } from "@/lib/prescription-ai";
-import { recognizePrescription } from "@/lib/ocr-client";
+import { savePrescription, useConsultationSession, usePrescription } from "@/lib/store";
+import { getMedicationInfo, parsePrescriptionText } from "@/lib/prescription-ai";
+import { recognizeRawText } from "@/lib/ocr-client";
 import { takePendingImage } from "@/lib/pending-image";
-import type { PrescriptionRecord } from "@/lib/types";
-import { ArrowLeft, ScanLine, ArrowRight, ImageOff } from "lucide-react";
+import {
+  conditionOf,
+  CONDITION_KIND_LABEL,
+  assessmentOf,
+} from "@/lib/consultation-condition";
+import type { MedicationInfo, PrescriptionItem, PrescriptionRecord } from "@/lib/types";
+import { ArrowLeft, ScanLine, ImageOff, Stethoscope, Sparkles } from "lucide-react";
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,9 +35,13 @@ export default function PrescriptionDetailPage() {
 
 function PrescriptionDetailBody({ id }: { id: string }) {
   const record = usePrescription(id);
+  const consultation = useConsultationSession(record?.consultationId ?? "");
   const ranOcr = useRef(false);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageGone, setImageGone] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const [parsing, setParsing] = useState(false);
 
   // Revoke the blob URL when it changes or the page unmounts.
   useEffect(() => {
@@ -59,14 +71,12 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     const objectUrl = URL.createObjectURL(file);
     savePrescription({ ...record, status: "PROCESSING" });
 
-    recognizePrescription(file)
-      .then((items) => {
+    recognizeRawText(file)
+      .then((rawText) => {
         setPreviewUrl(objectUrl);
-        savePrescription({
-          ...record,
-          status: needsVerification(items) ? "NEEDS_VERIFICATION" : "VERIFIED",
-          items,
-        });
+        // Stop at raw text — the user reviews/corrects it, then the LLM
+        // turns it into structured fields.
+        savePrescription({ ...record, status: "TEXT_REVIEW", rawText });
       })
       .catch(() => {
         URL.revokeObjectURL(objectUrl);
@@ -76,10 +86,57 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [record?.id, record?.status]);
 
-  function finalizeMedications() {
-    if (!record) return;
-    const medications = record.items.map(getMedicationInfo);
-    persist({ ...record, status: "COMPLETED", medications });
+  async function handleParse() {
+    if (!record || parsing) return;
+    const rawText = (textRef.current?.value ?? record.rawText ?? "").trim();
+    if (!rawText) return;
+    setParsing(true);
+    // Always land on the editable structured view after parsing — even when
+    // the LLM is confident, the user should get one look at nama obat / dosis
+    // / frekuensi before we generate the medication explanation. The
+    // "Konfirmasi Semua" button makes it a single click when it's already right.
+    const advance = (items: PrescriptionItem[]) =>
+      persist({ ...record, rawText, items, status: "NEEDS_VERIFICATION" });
+    try {
+      const res = await fetch("/api/prescription/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawText }),
+      });
+      const data = res.ok
+        ? ((await res.json()) as { items?: PrescriptionItem[] })
+        : null;
+      advance(data?.items?.length ? data.items : parsePrescriptionText(rawText));
+    } catch {
+      advance(parsePrescriptionText(rawText));
+    } finally {
+      setParsing(false);
+    }
+  }
+
+  async function finalizeMedications() {
+    if (!record || finalizing) return;
+    setFinalizing(true);
+    const localFallback = () => record.items.map(getMedicationInfo);
+    try {
+      const res = await fetch("/api/medication-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: record.items }),
+      });
+      const data = res.ok
+        ? ((await res.json()) as { medications: MedicationInfo[] })
+        : null;
+      persist({
+        ...record,
+        status: "COMPLETED",
+        medications: data?.medications ?? localFallback(),
+      });
+    } catch {
+      persist({ ...record, status: "COMPLETED", medications: localFallback() });
+    } finally {
+      setFinalizing(false);
+    }
   }
 
   if (record === undefined) {
@@ -98,27 +155,52 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           Resep tidak ditemukan
         </h1>
         <Button className="mt-6" render={<Link href="/prescriptions" />}>
-          Kembali ke Riwayat Resep
+          Kembali ke Resep
         </Button>
       </div>
     );
   }
 
   const backToConsultation = `/consultations/${record.consultationId}`;
+  const cond = conditionOf(consultation ?? null);
+  const assessment = assessmentOf(consultation ?? null);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
       <Link
-        href={backToConsultation}
+        href="/prescriptions"
         className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
       >
-        <ArrowLeft className="size-3.5" /> Kembali ke Konsultasi
+        <ArrowLeft className="size-3.5" /> Resep
       </Link>
       <PageHeader
-        title="Pemahaman Resep"
-        description="Verifikasi hasil pembacaan resep, lalu lihat penjelasan tiap obat."
+        eyebrow="Resep untuk kondisi"
+        title={cond.kind === "unknown" ? "Pemahaman Resep" : cond.label}
+        description="Obat untuk kondisi ini beserta penjelasannya. Dosis & aturan pakai selalu mengikuti yang dituliskan dokter."
         actions={<StatusBadge status={record.status as "PROCESSING"} />}
       />
+
+      {consultation && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Stethoscope className="size-4 text-primary" />
+              <span className="text-xs font-semibold tracking-wide text-primary uppercase">
+                Kondisi / Pra-diagnosa
+              </span>
+              <Badge variant="outline">{CONDITION_KIND_LABEL[cond.kind]}</Badge>
+            </div>
+            <p className="font-heading text-base font-medium text-foreground">{cond.label}</p>
+            {assessment && <p className="text-sm text-muted-foreground">{assessment}</p>}
+            <Link
+              href={backToConsultation}
+              className="w-fit text-xs text-primary underline-offset-2 hover:underline"
+            >
+              Lihat konsultasi asal →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {imageGone ? (
         <Alert variant="destructive">
@@ -138,25 +220,64 @@ function PrescriptionDetailBody({ id }: { id: string }) {
         <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-border py-24">
           <ScanLine className="size-8 animate-pulse text-primary" />
           <p className="text-sm text-muted-foreground">
-            Memproses gambar & membaca teks resep di perangkat Anda…
+            Membaca teks resep di perangkat Anda…
           </p>
         </div>
-      ) : record.status === "NEEDS_VERIFICATION" ? (
+      ) : record.status === "TEXT_REVIEW" ? (
+        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+          {previewUrl && (
+            <Card className="h-fit">
+              <CardContent>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={previewUrl}
+                  alt="Potongan resep"
+                  className="w-full rounded-lg border border-border object-cover"
+                />
+              </CardContent>
+            </Card>
+          )}
+          <div className="flex flex-col gap-3">
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+                Hasil bacaan OCR
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ini teks mentah dari foto. Perbaiki bila ada yang salah baca (terutama nama
+                obat), lalu proses jadi resep terstruktur.
+              </p>
+            </div>
+            <Textarea
+              ref={textRef}
+              defaultValue={record.rawText ?? ""}
+              rows={10}
+              className="font-mono text-sm"
+              placeholder="Teks tidak terbaca. Ketik ulang isi resep di sini…"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border p-4">
+              <Button variant="outline" render={<Link href={backToConsultation} />}>
+                <ImageOff className="size-3.5" />
+                Foto Ulang
+              </Button>
+              <Button onClick={handleParse} disabled={parsing}>
+                <Sparkles className="size-4" />
+                {parsing ? "Memproses…" : "Proses jadi Resep"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : record.status === "NEEDS_VERIFICATION" || record.status === "VERIFIED" ? (
+        // Both states show the editable fields. When everything is already
+        // verified, PrescriptionVerify just hides the amber banner and keeps
+        // its "Lihat Informasi Obat" button enabled.
         <PrescriptionVerify
           items={record.items}
           previewUrl={previewUrl}
           retakeHref={backToConsultation}
+          busy={finalizing}
           onChangeItems={(items) => persist({ ...record, items })}
           onConfirmAll={finalizeMedications}
         />
-      ) : record.status === "VERIFIED" ? (
-        <div className="flex flex-col items-center gap-4 py-10">
-          <p className="text-sm text-muted-foreground">Semua field terverifikasi.</p>
-          <Button onClick={finalizeMedications}>
-            Lihat Informasi Obat
-            <ArrowRight className="size-4" />
-          </Button>
-        </div>
       ) : (
         <div className="flex flex-col gap-4">
           {record.medications.map((med, i) => (

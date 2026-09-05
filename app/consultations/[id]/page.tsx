@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,50 +8,74 @@ import { ConsultationResult } from "@/components/consultation/consultation-resul
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { saveSession, useConsultationSession } from "@/lib/store";
-import { generateSummary } from "@/lib/health-ai";
-import type { ConsultationSession } from "@/lib/types";
+import type { ConsultationSession, ConsultationSummary } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 
-const COMPLETION_STAGES: ConsultationSession["status"][] = [
-  "COMPLETING",
-  "SUMMARY_GENERATION",
-  "SECURITY_PROCESSING",
-  "COMPLETED",
-];
+/** Calls our own /api/consultation/summary (real Healthify, with a local
+ * rule-based fallback baked in server-side). Only degrades further here if
+ * our own server is unreachable entirely. */
+async function fetchSummary(session: ConsultationSession): Promise<ConsultationSummary> {
+  try {
+    const res = await fetch("/api/consultation/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { summary: ConsultationSummary };
+      return data.summary;
+    }
+  } catch {
+    // fall through to the degenerate fallback below
+  }
+  return {
+    chief_complaint: session.healthContext.chief_complaint ?? "Tidak disebutkan",
+    reported_symptoms: session.healthContext.symptoms,
+    duration_onset: session.healthContext.duration ?? "unknown",
+    relevant_information: [],
+    questions_discussed: [],
+    ai_preliminary_assessment: "Ringkasan tidak dapat dibuat saat ini — server bermasalah.",
+    evidence_discussed: [],
+    recommended_next_step: "Konsultasikan langsung dengan dokter.",
+    important_warnings: [],
+    generated_at: new Date().toISOString(),
+  };
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 export default function ConsultationDetailPage() {
   const params = useParams<{ id: string }>();
   const session = useConsultationSession(params.id);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-
-  useEffect(() => {
-    const pending = timers.current;
-    return () => pending.forEach(clearTimeout);
-  }, [params.id]);
 
   function persist(next: ConsultationSession) {
     saveSession(next);
   }
 
-  function handleEnd() {
+  async function handleEnd() {
     if (!session) return;
     let current: ConsultationSession = { ...session, status: "COMPLETING" };
     persist(current);
+    await sleep(500);
 
-    COMPLETION_STAGES.slice(1).forEach((stage, i) => {
-      const timer = setTimeout(() => {
-        current = { ...current, status: stage };
-        if (stage === "SUMMARY_GENERATION") {
-          current.summary = generateSummary(current);
-        }
-        if (stage === "COMPLETED") {
-          current.encrypted = true;
-          current.completedAt = new Date().toISOString();
-        }
-        persist(current);
-      }, (i + 1) * 700);
-      timers.current.push(timer);
-    });
+    current = { ...current, status: "SUMMARY_GENERATION" };
+    persist(current);
+    const summary = await fetchSummary(current); // real Healthify, or local fallback
+    current = { ...current, summary };
+
+    current = { ...current, status: "SECURITY_PROCESSING" };
+    persist(current);
+    await sleep(500);
+
+    current = {
+      ...current,
+      status: "COMPLETED",
+      encrypted: true,
+      completedAt: new Date().toISOString(),
+    };
+    persist(current);
   }
 
   if (session === undefined) {

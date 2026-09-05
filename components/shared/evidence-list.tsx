@@ -31,16 +31,28 @@ export function EvidenceList({ evidence }: { evidence: EvidenceReference[] }) {
                 </Badge>
               </div>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {ref.source.authors} · {ref.source.publication_year} · {ref.source.publisher}
+                {[ref.source.authors, ref.source.publication_year, ref.source.publisher]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
+              {ref.source.url && (
+                <a
+                  href={ref.source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-0.5 inline-block text-xs text-primary underline-offset-2 hover:underline"
+                >
+                  Lihat sumber
+                </a>
+              )}
               <p className="mt-1.5 text-sm text-muted-foreground">{ref.snippet}</p>
             </div>
           </CardContent>
         </Card>
       ))}
       <p className="text-[11px] text-muted-foreground">
-        Sumber demo/ilustratif secara lokal — pada production akan diganti index evidence
-        sungguhan (jurnal, systematic review, clinical guideline).
+        Evidence diurutkan berdasarkan relevansi. Tautan hanya ditampilkan bila sumbernya
+        sudah dikonfirmasi dapat diakses.
       </p>
     </div>
   );

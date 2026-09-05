@@ -3,16 +3,15 @@ import { DRUG_KB } from "./kb";
 import { field, genId, type PrescriptionItem } from "./types";
 
 /**
- * Real, client-side OCR for prescription images (docs/prd.md Section 34-38).
- * Runs entirely in the browser via Tesseract.js (WASM) — the image bytes
- * never leave the client, matching the "gambar hanya diproses di client"
- * requirement. Field confidence values come from Tesseract's own per-word
- * confidence scores, not fabricated numbers.
+ * Client-side OCR for prescription images (docs/prd.md Section 34-38). Runs
+ * entirely in the browser via Tesseract.js (WASM) — the image bytes never
+ * leave the client. Field confidence comes from Tesseract's own per-word
+ * confidence scores.
  *
- * The structured-field extraction below is a simple heuristic (regex +
- * matching against our known drug vocabulary) — real handwriting OCR is
- * noisy, and this is a hackathon-scoped parser, not a clinical-grade NLP
- * pipeline. It only ever produces one PrescriptionItem per image for now.
+ * Kept deliberately simple: Tesseract's own image handling and default page
+ * segmentation read real photos better than hand-rolled canvas
+ * preprocessing did. The structured-field extraction is a light heuristic —
+ * whatever it gets wrong, the user fixes on the verification screen.
  */
 
 interface OcrWord {
@@ -52,8 +51,15 @@ async function recognizeText(file: File): Promise<{ text: string; words: OcrWord
   }
 }
 
-/** Average confidence of the OCR words that make up a matched substring —
- * a real signal instead of a guessed number. */
+/** Primary path: transcribe the (cropped) image to raw text and stop there.
+ * Classifying that text into fields is left to the LLM (server-side, text
+ * only) — Tesseract is only asked to do what it's good at. */
+export async function recognizeRawText(file: File): Promise<string> {
+  const { text } = await recognizeText(file);
+  return text.trim();
+}
+
+/** Average confidence of the OCR words that make up a matched substring. */
 function confidenceOf(words: OcrWord[], matchText: string): number {
   const tokens = matchText.toLowerCase().split(/\s+/).filter(Boolean);
   const hits = words.filter((w) => tokens.some((t) => t.includes(w.text.toLowerCase())));
@@ -61,32 +67,92 @@ function confidenceOf(words: OcrWord[], matchText: string): number {
   return hits.reduce((sum, w) => sum + w.confidence, 0) / hits.length;
 }
 
+/** Common Indonesian drugs (generic + frequent brands) — a wider net than
+ * the 5 entries in DRUG_KB for matching the medicine-name field. */
+const DRUG_VOCAB = [
+  ...Object.keys(DRUG_KB),
+  "amoxicillin",
+  "paracetamol",
+  "sanmol",
+  "panadol",
+  "ibuprofen",
+  "proris",
+  "asam mefenamat",
+  "mefinal",
+  "natrium diklofenak",
+  "cataflam",
+  "cetirizine",
+  "loratadine",
+  "chlorpheniramine",
+  "dexamethasone",
+  "methylprednisolone",
+  "prednison",
+  "omeprazole",
+  "lansoprazole",
+  "ranitidine",
+  "antasida",
+  "sucralfate",
+  "domperidone",
+  "ondansetron",
+  "amlodipine",
+  "captopril",
+  "candesartan",
+  "bisoprolol",
+  "simvastatin",
+  "atorvastatin",
+  "metformin",
+  "glimepiride",
+  "salbutamol",
+  "ambroxol",
+  "acetylcysteine",
+  "guaifenesin",
+  "dextromethorphan",
+  "cefadroxil",
+  "cefixime",
+  "ciprofloxacin",
+  "azithromycin",
+  "metronidazole",
+  "allopurinol",
+];
+
 const INSTRUCTION_PATTERNS: { pattern: RegExp; label: string }[] = [
   { pattern: /sebelum\s+makan/i, label: "Sebelum makan" },
   { pattern: /sesudah\s+makan\s+malam/i, label: "Sesudah makan malam" },
-  { pattern: /sesudah\s+makan/i, label: "Sesudah makan" },
-  { pattern: /malam\s+hari/i, label: "Malam hari sebelum tidur" },
+  { pattern: /(sesudah|setelah)\s+makan/i, label: "Sesudah makan" },
+  { pattern: /(saat|bersama)\s+makan/i, label: "Saat makan" },
+  { pattern: /(sebelum\s+tidur|malam\s+hari)/i, label: "Malam hari sebelum tidur" },
 ];
 
 const ROUTE_PATTERNS: { pattern: RegExp; label: string }[] = [
-  { pattern: /tetes/i, label: "Tetes" },
-  { pattern: /suntik|injeksi/i, label: "Injeksi" },
-  { pattern: /topikal|oles/i, label: "Topikal" },
+  { pattern: /tetes\s*mata/i, label: "Tetes mata" },
+  { pattern: /tetes\s*telinga/i, label: "Tetes telinga" },
+  { pattern: /(salep|krim|cream|gel|oles|topikal)/i, label: "Oles / topikal" },
+  { pattern: /(suntik|injeksi)/i, label: "Injeksi" },
+  { pattern: /(supp|suppositoria)/i, label: "Rektal (supositoria)" },
 ];
 
 export async function recognizePrescription(file: File): Promise<PrescriptionItem[]> {
   const { text, words } = await recognizeText(file);
   const lower = text.toLowerCase();
 
-  const knownDrugKey = Object.keys(DRUG_KB).find((key) => lower.includes(key));
+  const vocabHit = DRUG_VOCAB.find((d) => lower.includes(d));
+  const kbKey = vocabHit
+    ? Object.keys(DRUG_KB).find((k) => vocabHit.includes(k) || k.includes(vocabHit))
+    : undefined;
   const fallbackLine = text.split(/\r?\n/).find((l) => l.trim().length > 2)?.trim();
-  const medicineName = knownDrugKey ? DRUG_KB[knownDrugKey].medicine_name : (fallbackLine || "Tidak terbaca");
-  const nameConfidence = knownDrugKey ? confidenceOf(words, knownDrugKey) : 0.3;
+  const medicineName = kbKey
+    ? DRUG_KB[kbKey].medicine_name
+    : vocabHit
+      ? vocabHit.replace(/\b\w/g, (c) => c.toUpperCase())
+      : fallbackLine || "Tidak terbaca";
+  const nameConfidence = vocabHit ? Math.max(0.7, confidenceOf(words, vocabHit)) : 0.3;
 
-  const strengthMatch = text.match(/(\d+(?:[.,]\d+)?)\s?(mg|mcg|ml|g)\b/i);
+  const strengthMatch = text.match(/(\d+(?:[.,]\d+)?)\s?(mg|mcg|ml|g|iu|%)\b/i);
   const freqMatch =
-    text.match(/(\d)\s?[x×]\s?(\d)/i) ?? text.match(/(sekali|dua kali|tiga kali)\s+sehari/i);
-  const qtyMatch = text.match(/(\d+)\s?(tablet|kapsul|botol|strip)/i);
+    text.match(/(\d)\s?[x×]\s?(\d)/i) ??
+    text.match(/(\d)\s?[x×]\s?(?:sehari|hari)/i) ??
+    text.match(/(sekali|dua kali|tiga kali)\s+sehari/i);
+  const qtyMatch = text.match(/(\d+)\s?(tablet|kapsul|kaplet|botol|strip|sachet)/i);
   const instructionHit = INSTRUCTION_PATTERNS.find((p) => p.pattern.test(text));
   const routeHit = ROUTE_PATTERNS.find((p) => p.pattern.test(text));
 
@@ -99,15 +165,21 @@ export async function recognizePrescription(file: File): Promise<PrescriptionIte
         strengthMatch ? confidenceOf(words, strengthMatch[0]) : 0.3
       ),
       frequency: field(
-        freqMatch ? (freqMatch[2] ? `${freqMatch[1]}x${freqMatch[2]}` : `${freqMatch[0]} sehari`) : "Tidak terbaca",
+        freqMatch
+          ? freqMatch[2] && /^\d$/.test(freqMatch[2])
+            ? `${freqMatch[1]}x${freqMatch[2]}`
+            : /[x×]/i.test(freqMatch[0])
+              ? `${freqMatch[1]}x sehari`
+              : `${freqMatch[0]}`
+          : "Tidak terbaca",
         freqMatch ? confidenceOf(words, freqMatch[0]) : 0.3
       ),
       quantity: field(
         qtyMatch ? `${qtyMatch[1]} ${qtyMatch[2]}` : "Tidak terbaca",
         qtyMatch ? confidenceOf(words, qtyMatch[0]) : 0.3
       ),
-      route: field(routeHit?.label ?? "Oral", routeHit ? 0.85 : 0.6),
-      instruction: field(instructionHit?.label ?? "Tidak terbaca", instructionHit ? 0.85 : 0.3),
+      route: field(routeHit?.label ?? "Oral", routeHit ? 0.8 : 0.55),
+      instruction: field(instructionHit?.label ?? "Tidak terbaca", instructionHit ? 0.8 : 0.3),
     },
   ];
 }

@@ -26,7 +26,9 @@ export async function GET(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  return NextResponse.json(toClientShape(decryptFromStorage(data.data as StoredPrescriptionRecord)));
+  return NextResponse.json(
+    toClientShape(decryptFromStorage(data.data as StoredPrescriptionRecord, user.id))
+  );
 }
 
 export async function PUT(
@@ -54,12 +56,14 @@ export async function PUT(
       id,
       user_id: user.id,
       consultation_id: body.consultationId,
-      data: encryptForStorage(toStore),
+      data: encryptForStorage(toStore, user.id),
       updated_at: new Date().toISOString(),
     })
     .select("data")
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json(toClientShape(decryptFromStorage(data.data as StoredPrescriptionRecord)));
+  return NextResponse.json(
+    toClientShape(decryptFromStorage(data.data as StoredPrescriptionRecord, user.id))
+  );
 }

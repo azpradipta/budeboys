@@ -22,6 +22,7 @@ export function PrescriptionVerify({
   onConfirmAll,
   previewUrl,
   retakeHref,
+  busy = false,
 }: {
   items: PrescriptionItem[];
   onChangeItems: (items: PrescriptionItem[]) => void;
@@ -31,6 +32,8 @@ export function PrescriptionVerify({
    * lib/pending-image.ts). */
   previewUrl: string | null;
   retakeHref: string;
+  /** True while the medication explanation is being generated. */
+  busy?: boolean;
 }) {
   function updateField(itemIdx: number, key: keyof PrescriptionItem, value: string) {
     const next = items.map((item, i) => {
@@ -48,6 +51,23 @@ export function PrescriptionVerify({
       const current = item[key];
       if (!current || typeof current !== "object") return item;
       return { ...item, [key]: { ...current, verified: true, needsVerification: false } };
+    });
+    onChangeItems(next);
+  }
+
+  function verifyAll() {
+    const next = items.map((item) => {
+      let updated = item;
+      for (const { key } of FIELD_LABELS) {
+        const current = updated[key];
+        if (current && typeof current === "object") {
+          updated = {
+            ...updated,
+            [key]: { ...current, verified: true, needsVerification: false },
+          };
+        }
+      }
+      return updated;
     });
     onChangeItems(next);
   }
@@ -75,6 +95,18 @@ export function PrescriptionVerify({
       )}
 
       <div className="flex flex-col gap-5">
+        {!allVerified && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm dark:bg-amber-950/30">
+            <span className="text-amber-800 dark:text-amber-300">
+              Periksa hasil bacaan di bawah, lalu konfirmasi.
+            </span>
+            <Button size="sm" variant="outline" onClick={verifyAll} disabled={busy}>
+              <CircleCheck className="size-3.5" />
+              Konfirmasi Semua
+            </Button>
+          </div>
+        )}
+
         {items.map((item, itemIdx) => (
           <Card key={item.id}>
             <CardContent className="flex flex-col gap-3">
@@ -105,9 +137,13 @@ export function PrescriptionVerify({
             <Camera className="size-3.5" />
             Retake Photo
           </Button>
-          <Button onClick={onConfirmAll} disabled={!allVerified}>
+          <Button onClick={onConfirmAll} disabled={!allVerified || busy}>
             <CircleCheck className="size-4" />
-            {allVerified ? "Lihat Informasi Obat" : "Konfirmasi semua field dulu"}
+            {busy
+              ? "Menyusun penjelasan obat…"
+              : allVerified
+                ? "Lihat Informasi Obat"
+                : "Konfirmasi semua field dulu"}
           </Button>
         </div>
       </div>
