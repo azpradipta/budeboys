@@ -24,3 +24,4 @@ Pergi ke dokter
 Menerima resep
         ↓
 Mencari tahu sendiri obatnya
+```
