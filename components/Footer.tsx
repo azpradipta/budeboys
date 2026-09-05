@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import { FooterLink } from "@/components/footer-link";
 
 const columns = [
   {
@@ -50,12 +51,12 @@ const Footer = () => {
                 <ul className="mt-3 flex flex-col gap-2">
                   {col.links.map((link) => (
                     <li key={link.href}>
-                      <Link
+                      <FooterLink
                         href={link.href}
                         className="text-sm text-muted-foreground transition-colors hover:text-primary"
                       >
                         {link.label}
-                      </Link>
+                      </FooterLink>
                     </li>
                   ))}
                 </ul>

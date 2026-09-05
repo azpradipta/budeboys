@@ -50,6 +50,16 @@ function isEnvelope(value: unknown): value is EncryptedEnvelope {
   );
 }
 
+// True bila APP_ENCRYPTION_KEY terpasang; melempar error kalau formatnya salah.
+export function isEncryptionConfigured(): boolean {
+  return getKey() !== null;
+}
+
+// True bila nilai `data` yang tersimpan sudah berupa envelope terenkripsi.
+export function isStoredEncrypted(value: unknown): boolean {
+  return isEnvelope(value);
+}
+
 function warnPlaintextOnce() {
   if (warned) return;
   warned = true;

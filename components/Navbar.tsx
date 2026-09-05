@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
@@ -15,7 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { LoginDialog } from "@/components/auth/login-dialog";
+import { useLoginDialog } from "@/components/auth/login-dialog-context";
 import { useUser } from "@/lib/auth/use-user";
 import { signOut } from "@/lib/auth/sign-out";
 import { scrollToSection } from "@/lib/scroll-to-section";
@@ -25,8 +25,7 @@ type NavLink = { title: string } & ({ href: string } | { scrollTo: string });
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loginNext, setLoginNext] = useState("/consultations");
+  const { openLogin } = useLoginDialog();
   const user = useUser();
   const router = useRouter();
 
@@ -45,25 +44,6 @@ export default function Navbar() {
       document.body.style.overflow = "unset";
     }
   }, [isMobileMenuOpen]);
-
-  // Membaca "?login=1&next=" dari lemparan proxy lalu membuka dialog login.
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("login") === "1") {
-      const next = params.get("next") ?? "/consultations";
-      window.history.replaceState(null, "", window.location.pathname);
-      // Ditunda agar bukan setState langsung di badan effect.
-      Promise.resolve().then(() => {
-        setLoginNext(next);
-        setLoginOpen(true);
-      });
-    }
-  }, []);
-
-  const openLogin = useCallback((next?: string) => {
-    if (next) setLoginNext(next);
-    setLoginOpen(true);
-  }, []);
 
   async function handleSignOut() {
     await signOut();
@@ -99,6 +79,14 @@ export default function Navbar() {
       >
         <Link
           href="/"
+          onClick={(e) => {
+            // Kalau sudah di "/", Link ke rute yang sama tidak melakukan apa-apa,
+            // jadi scroll ke atas ditangani manual.
+            if (window.location.pathname === "/") {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
           className="text-2xl font-bold tracking-tighter text-primary shrink-0"
         >
           Healthalk<span className="text-primary/60">.</span>
@@ -283,7 +271,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} next={loginNext} />
     </>
   );
 }

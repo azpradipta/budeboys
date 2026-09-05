@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LoginDialogProvider } from "@/components/auth/login-dialog-context";
 
 import { cn } from "@/lib/utils";
 
@@ -44,11 +45,13 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <TooltipProvider>
-          <Navbar />
+          <LoginDialogProvider>
+            <Navbar />
 
-          <main className="flex-1">{children}</main>
+            <main className="flex-1">{children}</main>
 
-          <Footer />
+            <Footer />
+          </LoginDialogProvider>
         </TooltipProvider>
       </body>
     </html>
