@@ -1,8 +1,8 @@
-# Integrasi Healthify Intelligence API
+# Integrasi RAG API
 
-Fitur konsultasi (Fase 1) dilandasi **Healthify Intelligence API**, RAG di atas
-literatur jurnal peer-reviewed dengan DOI tervalidasi.
-Dokumentasi: https://healthify.twenti.studio/docs
+Fitur konsultasi (Fase 1) dilandasi **RAG API**: retrieval di atas literatur
+jurnal peer-reviewed dengan DOI tervalidasi.
+Dokumentasi: https://ragai.twenti.studio/docs
 
 ## Setup
 
@@ -13,8 +13,8 @@ Dokumentasi: https://healthify.twenti.studio/docs
    memakai prefiks `NEXT_PUBLIC_`:
 
    ```
-   HEALTHIFY_API_KEY=ht_live_xxxxxxxx
-   HEALTHIFY_API_BASE_URL=https://healthify.twenti.studio
+   RAG_API_KEY=ht_live_xxxxxxxx
+   RAG_API_BASE_URL=https://ragai.twenti.studio
    ```
 
 3. Setelah dev server dijalankan ulang, aplikasi otomatis beralih dari fallback
@@ -25,23 +25,23 @@ dan demo KB di `lib/health-ai.ts` dan `lib/kb.ts`.
 
 ## Pemetaan route
 
-| Route kita | Memanggil Healthify | Fallback |
+| Route kita | Memanggil RAG | Fallback |
 |---|---|---|
 | `POST /api/consultation/turn` | `POST /api/v1/intelligence/query` (`mode: consultation`, `format: full`) | `generateLocalTurn()` |
 | `POST /api/consultation/summary` | `POST /api/v1/intelligence/summary` | `generateSummary()` |
 
-- `lib/server/healthify-client.ts`: HTTP client. Selalu mengembalikan `null`
+- `lib/server/rag-client.ts`: HTTP client. Selalu mengembalikan `null`
   saat gagal, tidak pernah throw, agar fallback berjalan mulus.
-- `lib/server/healthify-mapping.ts`: satu-satunya tempat yang tahu perbedaan
-  nama field Healthify dan milik kita. Kalau bentuk response mereka berubah,
+- `lib/server/rag-mapping.ts`: satu-satunya tempat yang tahu perbedaan
+  nama field RAG dan milik kita. Kalau bentuk response mereka berubah,
   cukup ubah file ini.
 - Id konsultasi kita dipakai langsung sebagai `context.session_id`, sehingga
-  akumulasi konteks antar giliran ditangani Healthify di sisi server.
+  akumulasi konteks antar giliran ditangani RAG di sisi server.
 
 ## Aturan dari dokumentasi mereka yang kita patuhi
 
 - **Tautan `https://doi.org/{doi}` tidak pernah disusun sendiri.** Sumber baru
-  ditampilkan bila Healthify mengembalikan `url` yang tervalidasi.
+  ditampilkan bila RAG mengembalikan `url` yang tervalidasi.
 - **`notice`, `has_evidence: false`, dan safety flag** dipetakan ke `RiskLevel`,
   `insufficientEvidence`, dan teks respons darurat kita.
 - **Latensi 2-10 detik.** Route turn menunggunya langsung, dan UI sudah

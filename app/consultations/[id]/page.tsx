@@ -61,7 +61,7 @@ export default function ConsultationDetailPage() {
 
     current = { ...current, status: "SUMMARY_GENERATION" };
     persist(current);
-    const summary = await fetchSummary(current); // real Healthify, or local fallback
+    const summary = await fetchSummary(current); // real RAG, or local fallback
     current = { ...current, summary };
 
     current = { ...current, status: "SECURITY_PROCESSING" };

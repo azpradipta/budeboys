@@ -8,15 +8,15 @@ import type {
   UtteranceIntent,
 } from "@/lib/types";
 import type {
-  HealthifyEvidence,
-  HealthifyHealthContext,
-  HealthifyQueryResult,
-  HealthifySafetyFlag,
-  HealthifySummary,
-  HealthifySummaryField,
-} from "./healthify-client";
+  RagEvidence,
+  RagHealthContext,
+  RagQueryResult,
+  RagSafetyFlag,
+  RagSummary,
+  RagSummaryField,
+} from "./rag-client";
 
-// Adapter response Healthify ke tipe aplikasi. Satu-satunya file yang
+// Adapter response RAG ke tipe aplikasi. Satu-satunya file yang
 // perlu disesuaikan kalau bentuk response mereka berubah.
 
 const VALID_SOURCE_TYPES: SourceType[] = [
@@ -32,17 +32,17 @@ function toSourceType(raw: string): SourceType {
     : "authoritative_health_source";
 }
 
-export function mapHealthifyEvidence(items: HealthifyEvidence[]): EvidenceReference[] {
+export function mapRagEvidence(items: RagEvidence[]): EvidenceReference[] {
   return items.map((e) => {
     const source: EvidenceSource = {
       source_id: e.source_id,
       title: e.title,
-      authors: "", // Healthify tidak mengirimnya; EvidenceList sembunyikan saat kosong
+      authors: "", // RAG tidak mengirimnya; EvidenceList sembunyikan saat kosong
       publication_year: e.published_year ?? new Date().getFullYear(),
       publisher: e.publisher ?? "Unknown",
       doi: e.doi ?? "",
       abstract: e.snippet,
-      url: e.url ?? "", // null berarti Healthify gagal memverifikasi tautannya
+      url: e.url ?? "", // null berarti RAG gagal memverifikasi tautannya
       source_type: toSourceType(e.source_type),
     };
     return { source, snippet: e.snippet, score: e.relevance };
@@ -58,9 +58,9 @@ function toSeverity(raw: string | null): Severity {
   return "unknown";
 }
 
-// Menggabungkan konteks Healthify ke milik kita, tanpa mengarang field yang tidak ada di sana.
-export function mapHealthifyContext(
-  hc: HealthifyHealthContext,
+// Menggabungkan konteks RAG ke milik kita, tanpa mengarang field yang tidak ada di sana.
+export function mapRagContext(
+  hc: RagHealthContext,
   previous: HealthContext
 ): HealthContext {
   return {
@@ -82,7 +82,7 @@ export function mapHealthifyContext(
   };
 }
 
-export function toHealthifyContext(hc: HealthContext): Partial<HealthifyHealthContext> {
+export function toRagContext(hc: HealthContext): Partial<RagHealthContext> {
   return {
     chief_complaint: hc.chief_complaint,
     symptoms: hc.symptoms,
@@ -107,24 +107,24 @@ const INTENT_MAP: Record<string, UtteranceIntent> = {
   UNSUPPORTED: "NON_MEDICAL",
 };
 
-export function mapHealthifyIntent(raw: string): UtteranceIntent {
+export function mapRagIntent(raw: string): UtteranceIntent {
   return INTENT_MAP[raw] ?? "NON_MEDICAL";
 }
 
-export function mapHealthifyRisk(safety: HealthifyQueryResult["safety"]): RiskLevel {
-  const flags: HealthifySafetyFlag[] = safety?.flags ?? [];
+export function mapRagRisk(safety: RagQueryResult["safety"]): RiskLevel {
+  const flags: RagSafetyFlag[] = safety?.flags ?? [];
   if (flags.some((f) => f.code === "EMERGENCY_SIGNAL")) return "EMERGENCY_SIGNAL";
   if (flags.some((f) => f.severity === "critical")) return "HIGH_RISK";
   if (flags.some((f) => f.severity === "warning")) return "MEDIUM_RISK";
   return "LOW_RISK";
 }
 
-function pickValue<T>(field: HealthifySummaryField<T> | null | undefined, fallback: T): T {
+function pickValue<T>(field: RagSummaryField<T> | null | undefined, fallback: T): T {
   return field?.value ?? fallback;
 }
 
-// Memetakan summary Healthify ke ConsultationSummary, tanpa provenance per field.
-export function mapHealthifySummary(summary: HealthifySummary) {
+// Memetakan summary RAG ke ConsultationSummary, tanpa provenance per field.
+export function mapRagSummary(summary: RagSummary) {
   return {
     chief_complaint: pickValue(summary.chief_complaint, "Tidak disebutkan secara eksplisit"),
     reported_symptoms: summary.symptoms
@@ -134,7 +134,7 @@ export function mapHealthifySummary(summary: HealthifySummary) {
     relevant_information: summary.relevant_information
       .map((i) => pickValue<string>(i, ""))
       .filter(Boolean),
-    questions_discussed: [] as string[], // tidak ada padanannya di Healthify
+    questions_discussed: [] as string[], // tidak ada padanannya di RAG
     ai_preliminary_assessment: pickValue(
       summary.preliminary_assessment,
       "Informasi belum cukup untuk memberikan penilaian awal."

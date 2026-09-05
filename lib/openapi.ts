@@ -423,7 +423,7 @@ const paths = {
       tags: ["Consultation AI"],
       summary: "Menjawab satu giliran percakapan",
       description:
-        "Basa-basi dijawab langsung tanpa retrieval. Selain itu, Healthify dipanggil untuk jawaban berbasis evidence, dan bila tidak dikonfigurasi atau tak terjangkau, generator lokal yang menjawab. Field `source` menandai jalur yang dipakai.",
+        "Basa-basi dijawab langsung tanpa retrieval. Selain itu, RAG dipanggil untuk jawaban berbasis evidence, dan bila tidak dikonfigurasi atau tak terjangkau, generator lokal yang menjawab. Field `source` menandai jalur yang dipakai.",
       requestBody: {
         required: true,
         content: {
@@ -467,7 +467,7 @@ const paths = {
                   healthContext: { $ref: "#/components/schemas/HealthContext" },
                   source: {
                     type: "string",
-                    enum: ["smalltalk", "healthify", "local_fallback"],
+                    enum: ["smalltalk", "rag", "local_fallback"],
                   },
                 },
                 required: ["text", "intent", "evidence", "risk", "healthContext", "source"],
@@ -486,7 +486,7 @@ const paths = {
       tags: ["Consultation AI"],
       summary: "Meringkas konsultasi yang selesai",
       description:
-        "Mencoba endpoint summary Healthify, lalu fallback ke generator lokal yang disusun dari pesan-pesan sesi itu sendiri.",
+        "Mencoba endpoint summary RAG, lalu fallback ke generator lokal yang disusun dari pesan-pesan sesi itu sendiri.",
       requestBody: {
         required: true,
         content: {
@@ -510,7 +510,7 @@ const paths = {
                 type: "object",
                 properties: {
                   summary: { $ref: "#/components/schemas/ConsultationSummary" },
-                  source: { type: "string", enum: ["healthify", "local_fallback"] },
+                  source: { type: "string", enum: ["rag", "local_fallback"] },
                 },
                 required: ["summary", "source"],
               },
@@ -795,7 +795,7 @@ export const openApiDocument = {
       "",
       "## Fallback",
       "",
-      "Endpoint yang bergantung pada layanan pihak ketiga (Healthify untuk retrieval, OpenAI",
+      "Endpoint yang bergantung pada layanan pihak ketiga (RAG untuk retrieval, OpenAI",
       "untuk parsing dan penjelasan obat) turun ke logika lokal bila layanan itu tidak",
       "dikonfigurasi atau gagal. Response menyertakan field `source` agar pemanggil tahu",
       "jalur mana yang dipakai.",

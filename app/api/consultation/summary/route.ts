@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { summarizeHealthifySession } from "@/lib/server/healthify-client";
-import { mapHealthifySummary } from "@/lib/server/healthify-mapping";
+import { summarizeRagSession } from "@/lib/server/rag-client";
+import { mapRagSummary } from "@/lib/server/rag-mapping";
 import { generateSummary } from "@/lib/health-ai";
 import type { ConsultationSession } from "@/lib/types";
 
-// Ringkasan penutup konsultasi, Healthify dulu lalu fallback ke generator lokal.
+// Ringkasan penutup konsultasi, RAG dulu lalu fallback ke generator lokal.
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   const {
@@ -18,11 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing_session" }, { status: 400 });
   }
 
-  const healthifySummary = await summarizeHealthifySession(body.session.id, true);
-  if (healthifySummary) {
+  const ragSummary = await summarizeRagSession(body.session.id, true);
+  if (ragSummary) {
     return NextResponse.json({
-      summary: mapHealthifySummary(healthifySummary),
-      source: "healthify",
+      summary: mapRagSummary(ragSummary),
+      source: "rag",
     });
   }
 
