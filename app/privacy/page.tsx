@@ -128,7 +128,7 @@ export default async function PrivacyPage({
   const openaiEnabled = Boolean(process.env.OPENAI_API_KEY);
 
   return (
-    <div className="mx-auto max-w-6l px-6 py-26 ">
+    <div className="mx-auto max-w-6xl px-6 py-26">
       <DashboardHeader
               heading="Privasi & Keamanan"
               subHeading="Kebijakan privasi Healthalk, status perlindungan yang sedang berlaku, dan kendali penuh atas data kesehatan Anda."
