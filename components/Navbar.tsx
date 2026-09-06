@@ -46,17 +46,6 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
-
-  const handleLoginRequest = useCallback((next: string) => {
-    setLoginNext(next);
-    setLoginOpen(true);
-  }, []);
-
-  const openLogin = useCallback((next?: string) => {
-    if (next) setLoginNext(next);
-    setLoginOpen(true);
-  }, []);
-
   async function handleSignOut() {
     await signOut();
     router.push("/");
