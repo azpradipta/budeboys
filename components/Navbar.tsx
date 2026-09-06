@@ -23,6 +23,35 @@ import { scrollToSection } from "@/lib/scroll-to-section";
 
 type NavLink = { title: string } & ({ href: string } | { scrollTo: string });
 
+/**
+ * Proxy melempar kunjungan tanpa login ke "/?login=1&next=<path asal>".
+ *
+ * Parameternya dibaca lewat useSearchParams, bukan window.location sekali di
+ * mount: Navbar hidup di root layout dan tidak pernah ter-mount ulang, jadi
+ * setiap redirect yang datang lewat navigasi sisi klien akan terlewat.
+ * Itulah kenapa mengeklik tautan terproteksi dari footer sebelumnya terasa
+ * tidak melakukan apa-apa.
+ *
+ * Dipisah jadi komponen sendiri agar bisa dibungkus <Suspense>, syarat
+ * useSearchParams pada halaman yang dirender statis.
+ */
+function LoginRedirectWatcher({ onRequest }: { onRequest: (next: string) => void }) {
+  const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (params.get("login") !== "1") return;
+    onRequest(params.get("next") ?? "/consultations");
+    // Dibersihkan lewat router, bukan history.replaceState, supaya state
+    // router ikut berubah. Kalau tidak, redirect kedua ke path yang sama
+    // dianggap tidak mengubah apa pun dan dialognya tidak terbuka lagi.
+    router.replace(pathname);
+  }, [params, pathname, router, onRequest]);
+
+  return null;
+}
+
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -45,6 +74,17 @@ export default function Navbar() {
       document.body.style.overflow = "unset";
     }
   }, [isMobileMenuOpen]);
+
+
+  const handleLoginRequest = useCallback((next: string) => {
+    setLoginNext(next);
+    setLoginOpen(true);
+  }, []);
+
+  const openLogin = useCallback((next?: string) => {
+    if (next) setLoginNext(next);
+    setLoginOpen(true);
+  }, []);
 
   async function handleSignOut() {
     await signOut();
