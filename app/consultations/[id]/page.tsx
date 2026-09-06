@@ -2,18 +2,15 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/shared/page-header";
 import { LiveConsultation } from "@/components/consultation/live-consultation";
 import { ConsultationResult } from "@/components/consultation/consultation-result";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { saveSession, useConsultationSession } from "@/lib/store";
 import type { ConsultationSession, ConsultationSummary } from "@/lib/types";
-import { ArrowLeft } from "lucide-react";
+import DashboardHeader from "@/components/DashboardHeader";
 
-/** Calls our own /api/consultation/summary (real Healthify, with a local
- * rule-based fallback baked in server-side). Only degrades further here if
- * our own server is unreachable entirely. */
+// Memanggil route summary yang sudah punya fallback sendiri di server.
 async function fetchSummary(session: ConsultationSession): Promise<ConsultationSummary> {
   try {
     const res = await fetch("/api/consultation/summary", {
@@ -26,15 +23,17 @@ async function fetchSummary(session: ConsultationSession): Promise<ConsultationS
       return data.summary;
     }
   } catch {
-    // fall through to the degenerate fallback below
+    // Jatuh ke ringkasan minimal di bawah.
   }
   return {
-    chief_complaint: session.healthContext.chief_complaint ?? "Tidak disebutkan",
+    chief_complaint:
+      session.healthContext.chief_complaint ?? "Tidak disebutkan",
     reported_symptoms: session.healthContext.symptoms,
     duration_onset: session.healthContext.duration ?? "unknown",
     relevant_information: [],
     questions_discussed: [],
-    ai_preliminary_assessment: "Ringkasan tidak dapat dibuat saat ini karena server bermasalah.",
+    ai_preliminary_assessment:
+      "Ringkasan tidak dapat dibuat saat ini karena server bermasalah.",
     evidence_discussed: [],
     recommended_next_step: "Konsultasikan langsung dengan dokter.",
     important_warnings: [],
@@ -62,7 +61,7 @@ export default function ConsultationDetailPage() {
 
     current = { ...current, status: "SUMMARY_GENERATION" };
     persist(current);
-    const summary = await fetchSummary(current); // real Healthify, or local fallback
+    const summary = await fetchSummary(current); // real RAG, or local fallback
     current = { ...current, summary };
 
     current = { ...current, status: "SECURITY_PROCESSING" };
@@ -106,17 +105,10 @@ export default function ConsultationDetailPage() {
   const isLive = session.status !== "COMPLETED";
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <Link
-        href="/consultations/history"
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-      >
-        <ArrowLeft className="size-3.5" /> Riwayat Konsultasi
-      </Link>
-      <PageHeader
-        eyebrow={isLive ? "Phase 1 · Understand" : "Phase 1 Selesai"}
-        title={isLive ? "Konsultasi Berlangsung" : "Ringkasan Konsultasi"}
-        description={
+    <div className="mx-auto max-w-6xl px-6 py-26 space-y-6">
+      <DashboardHeader
+        heading="Sesi Konsultasi"
+        subHeading={
           isLive
             ? "Bicara atau ketik keluhan Anda. Health context akan tersusun otomatis di panel kanan."
             : "Konsultasi telah selesai dan diringkas. Bawa ringkasan ini ke dokter."
@@ -128,7 +120,11 @@ export default function ConsultationDetailPage() {
       session.status === "SECURITY_PROCESSING" ? (
         <TransitionState status={session.status} />
       ) : isLive ? (
-        <LiveConsultation session={session} onUpdate={persist} onEnd={handleEnd} />
+        <LiveConsultation
+          session={session}
+          onUpdate={persist}
+          onEnd={handleEnd}
+        />
       ) : (
         <ConsultationResult session={session} onUpdate={persist} />
       )}
@@ -136,7 +132,11 @@ export default function ConsultationDetailPage() {
   );
 }
 
-function TransitionState({ status }: { status: ConsultationSession["status"] }) {
+function TransitionState({
+  status,
+}: {
+  status: ConsultationSession["status"];
+}) {
   const label =
     status === "COMPLETING"
       ? "Menyelesaikan sesi…"

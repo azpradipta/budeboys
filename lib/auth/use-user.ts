@@ -9,8 +9,7 @@ export function useUser(): User | null | undefined {
   const [user, setUser] = useState<User | null | undefined>(undefined);
 
   useEffect(() => {
-    // Tanpa konfigurasi Supabase, anggap belum login daripada melempar
-    // error di setiap halaman yang merender <Navbar>.
+    // Tanpa konfigurasi Supabase, dianggap belum login daripada melempar error.
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       Promise.resolve().then(() => setUser(null));
       return;

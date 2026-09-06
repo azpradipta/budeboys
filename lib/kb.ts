@@ -1,10 +1,6 @@
 import type { EvidenceSource, MedicationInfo } from "./types";
 
-/**
- * Knowledge base demo lokal, pengganti backend evidence retrieval dan drug
- * knowledge yang sebenarnya. Isinya ilustratif, bukan korpus riset asli, dan
- * UI wajib menandainya begitu agar tidak terkesan lebih pasti dari faktanya.
- */
+// Knowledge base demo lokal. Isinya ilustratif, bukan korpus riset asli.
 
 const EVIDENCE_KB: (EvidenceSource & { keywords: string[] })[] = [
   {

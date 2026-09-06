@@ -4,6 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { MessageBubble } from "./message-bubble";
 import { HealthContextPanel } from "./health-context-panel";
@@ -18,14 +26,14 @@ import {
 import type { ConsultationSession, HealthContext } from "@/lib/types";
 import { Mic, Square, Send, PhoneOff, Keyboard, VolumeX, Clock } from "lucide-react";
 
-/** Memanggil /api/consultation/turn, yang sudah punya fallback sendiri di
- * server. Penanganan di sini hanya untuk kasus server kita tak terjangkau. */
+// Memanggil route turn yang sudah punya fallback sendiri di server.
 async function fetchTurn(
   query: string,
   sessionId: string,
   healthContext: HealthContext,
   hasPriorContext: boolean,
-  lastAssistantText: string
+  lastAssistantText: string,
+  history: { role: "user" | "assistant"; text: string }[]
 ): Promise<AssistantTurn> {
   try {
     const res = await fetch("/api/consultation/turn", {
@@ -37,11 +45,12 @@ async function fetchTurn(
         healthContext,
         hasPriorContext,
         lastAssistantText,
+        history,
       }),
     });
     if (res.ok) return (await res.json()) as AssistantTurn;
   } catch {
-    // fall through to the degenerate fallback below
+    // Jatuh ke jawaban minimal di bawah.
   }
   return {
     text: "Maaf, saya tidak bisa memproses itu sekarang karena koneksi ke server bermasalah. Coba lagi sesaat lagi.",
@@ -66,14 +75,34 @@ export function LiveConsultation({
   const [useTextMode, setUseTextMode] = useState(false);
   const [pending, setPending] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const processingRef = useRef(false); // stale-closure-proof turn guard
   const endedRef = useRef(false);
   const { supported, listening, interimText, start, stop } = useSpeechRecognition();
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [session.messages.length, interimText, pending]);
+    const container = scrollRef.current;
+    if (!container) return;
+
+    // Kalau pesan terbaru dari asisten, sejajarkan AWAL jawaban ke atas
+    // viewport supaya bisa dibaca dari awal, bukan langsung ke ujung bawah.
+    const last = session.messages[session.messages.length - 1];
+    if (last?.role === "assistant" && !interimText && !pending) {
+      const el = container.querySelector<HTMLElement>(`[data-msg-id="${last.id}"]`);
+      if (el) {
+        const offset =
+          container.scrollTop +
+          (el.getBoundingClientRect().top - container.getBoundingClientRect().top) -
+          12;
+        const max = container.scrollHeight - container.clientHeight;
+        container.scrollTo({ top: Math.min(offset, max), behavior: "smooth" });
+        return;
+      }
+    }
+
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [session.messages, interimText, pending]);
 
   useEffect(() => () => cancelSpeech(), []);
 
@@ -87,16 +116,13 @@ export function LiveConsultation({
     if (!text.trim() || processingRef.current || endedRef.current) return;
     processingRef.current = true;
 
-    // Half-duplex: mic dimatikan dan TTS sebelumnya dihentikan dulu. Kalau
-    // tidak, suara jawaban dari speaker ikut tertranskrip jadi pertanyaan
-    // baru (feedback loop).
+    // Half-duplex: mic dan TTS dimatikan dulu agar tidak terjadi feedback loop.
     stopEverything();
 
     const hasPriorContext = session.messages.some((m) => m.role === "user");
     const userMessage = createMessage("user", text.trim());
 
-    // Basa-basi dijawab seketika di klien, tanpa panggilan server maupun
-    // evidence.
+    // Basa-basi dijawab seketika di klien, tanpa panggilan server.
     const social = detectSmallTalk(text);
     if (social) {
       const reply = smallTalkReply(social);
@@ -130,12 +156,17 @@ export function LiveConsultation({
 
     const lastAssistantText =
       [...session.messages].reverse().find((m) => m.role === "assistant")?.text ?? "";
+    // Riwayat sebelum ucapan sekarang; ucapan sekarang dikirim terpisah sebagai `query`.
+    const history = session.messages
+      .slice(-10)
+      .map((m) => ({ role: m.role, text: m.text }));
     const turn = await fetchTurn(
       text,
       session.id,
       session.healthContext,
       hasPriorContext,
-      lastAssistantText
+      lastAssistantText,
+      history
     );
     setPending(false);
     processingRef.current = false;
@@ -153,9 +184,7 @@ export function LiveConsultation({
       healthContext: turn.healthContext,
     });
 
-    // Hanya bersuara di mode voice, mic tetap mati. Tidak ada auto-restart:
-    // pengguna menekan mic lagi untuk giliran berikutnya, sehingga feedback
-    // loop mustahil terjadi.
+    // Hanya bersuara di mode voice, dan mic tetap mati sampai ditekan lagi.
     if (!useTextMode) {
       setAiSpeaking(true);
       speak(turn.text, { onEnd: () => setAiSpeaking(false) });
@@ -167,8 +196,7 @@ export function LiveConsultation({
       stopEverything();
       return;
     }
-    // Tapping the mic while the AI is talking = barge in: cut it off and
-    // start listening.
+    // Menekan mic saat AI bicara berarti menyela: suaranya dipotong.
     cancelSpeech();
     setAiSpeaking(false);
     start((text) => void handleUtterance(text));
@@ -189,30 +217,26 @@ export function LiveConsultation({
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <Card className="flex h-128 flex-col">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2">
-            <StatusBadge status={session.status as "ACTIVE"} />
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="size-3" />
-              <SessionTimer startedAt={session.createdAt} />
-              <span className="hidden sm:inline">
-                · mulai{" "}
-                {new Date(session.createdAt).toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <StatusBadge status={session.status as "ACTIVE"} />
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="size-3" />
+            <SessionTimer startedAt={session.createdAt} />
+            <span className="hidden sm:inline">
+              · mulai{" "}
+              {new Date(session.createdAt).toLocaleTimeString("id-ID", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
-          </div>
-          <Button size="sm" variant="destructive" onClick={handleEndConsultation}>
-            <PhoneOff className="size-3.5" />
-            Akhiri Konsultasi
-          </Button>
+          </span>
         </div>
 
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {session.messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <div key={m.id} data-msg-id={m.id}>
+              <MessageBubble message={m} />
+            </div>
           ))}
           {interimText && (
             <div className="flex justify-end">
@@ -233,16 +257,26 @@ export function LiveConsultation({
         <div className="border-t border-border p-4">
           {!useTextMode && supported ? (
             <div className="flex flex-col items-center gap-2">
-              <Button
-                size="icon-lg"
-                onClick={toggleMic}
-                className="size-14 rounded-full"
-                variant={listening ? "destructive" : "default"}
-                disabled={pending}
-                aria-label={listening ? "Berhenti bicara" : "Mulai bicara"}
-              >
-                {listening ? <Square className="size-5" /> : <Mic className="size-6" />}
-              </Button>
+              <div className="flex items-center gap-8">
+                <Button
+                  size="icon-lg"
+                  onClick={toggleMic}
+                  className="size-14 rounded-full"
+                  variant={listening ? "destructive" : "default"}
+                  disabled={pending}
+                  aria-label={listening ? "Berhenti bicara" : "Mulai bicara"}
+                >
+                  {listening ? <Square className="size-5" /> : <Mic className="size-6" />}
+                </Button>
+                <Button
+                  size="icon-lg"
+                  onClick={() => setEndConfirmOpen(true)}
+                  className="size-14 rounded-full bg-destructive text-white hover:bg-destructive/90"
+                  aria-label="Akhiri konsultasi"
+                >
+                  <PhoneOff className="size-6" />
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {pending
                   ? "Menyusun jawaban…"
@@ -296,6 +330,15 @@ export function LiveConsultation({
                   <Mic className="size-3.5" /> Suara
                 </Button>
               )}
+              <Button
+                type="button"
+                size="icon"
+                onClick={() => setEndConfirmOpen(true)}
+                className="bg-destructive text-white hover:bg-destructive/90"
+                aria-label="Akhiri konsultasi"
+              >
+                <PhoneOff className="size-4" />
+              </Button>
             </form>
           )}
           {!supported && (
@@ -314,6 +357,33 @@ export function LiveConsultation({
           <HealthContextPanel context={session.healthContext} />
         </CardContent>
       </Card>
+
+      <Dialog open={endConfirmOpen} onOpenChange={setEndConfirmOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Akhiri konsultasi?</DialogTitle>
+            <DialogDescription>
+              Sesi ditutup dan ringkasan disusun dari percakapan sejauh ini. Sesi yang
+              sudah diakhiri tidak bisa dilanjutkan lagi.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEndConfirmOpen(false)}>
+              Batal
+            </Button>
+            <Button
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => {
+                setEndConfirmOpen(false);
+                handleEndConsultation();
+              }}
+            >
+              <PhoneOff className="size-4" />
+              Ya, Akhiri
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

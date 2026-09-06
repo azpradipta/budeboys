@@ -1,17 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/**
- * Berjalan sebelum setiap request yang cocok dengan matcher, dengan tiga
- * tugas: me-refresh cookie sesi Supabase, menahan pengunjung yang belum
- * login dari halaman terproteksi, dan melempar pengguna yang sudah login
- * dari landing page ke aplikasi.
- *
- * Next.js 16 mengganti nama konvensi ini dari `middleware.ts` ke `proxy.ts`.
- *
- * Route API sengaja tidak dijaga di sini; masing-masing memeriksa auth
- * sendiri, sesuai anjuran Next agar tidak bergantung pada proxy saja.
- */
+// Me-refresh cookie sesi dan menjaga akses halaman sesuai status login.
+// Route API tidak dijaga di sini karena masing-masing memeriksa auth sendiri.
 
 /** Kept in sync by hand with `config.matcher` below — the matcher decides
  * which requests reach this file at all, this list decides which of those get
@@ -41,8 +32,7 @@ export async function proxy(request: NextRequest) {
 
   let response = NextResponse.next({ request });
 
-  // Tanpa konfigurasi Supabase, biarkan semua lewat daripada mematikan
-  // seluruh aplikasi. Proteksi aktif sendiri begitu env terisi.
+  // Tanpa konfigurasi Supabase semua request dilewatkan; proteksi aktif saat env terisi.
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return response;
   }
@@ -103,8 +93,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Semua kecuali aset statis. Route API ikut agar cookie sesinya tetap
-    // segar; hanya path halaman yang bisa memicu redirect.
+    // Semua kecuali aset statis. Route API ikut agar cookie sesinya tetap segar.
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

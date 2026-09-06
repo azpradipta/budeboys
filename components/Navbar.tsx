@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { LoginDialog } from "@/components/auth/login-dialog";
+import { useLoginDialog } from "@/components/auth/login-dialog-context";
 import { useUser } from "@/lib/auth/use-user";
 import { signOut } from "@/lib/auth/sign-out";
 import { scrollToSection } from "@/lib/scroll-to-section";
@@ -54,8 +55,7 @@ function LoginRedirectWatcher({ onRequest }: { onRequest: (next: string) => void
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [loginNext, setLoginNext] = useState("/consultations");
+  const { openLogin } = useLoginDialog();
   const user = useUser();
   const router = useRouter();
 
@@ -75,6 +75,7 @@ export default function Navbar() {
     }
   }, [isMobileMenuOpen]);
 
+
   const handleLoginRequest = useCallback((next: string) => {
     setLoginNext(next);
     setLoginOpen(true);
@@ -91,9 +92,7 @@ export default function Navbar() {
     router.refresh();
   }
 
-  // Belum login: selain "/" semuanya dilempar balik oleh proxy, jadi nav
-  // hanya berisi tautan marketing. Sudah login: tautan marketing tidak
-  // berguna karena "/" pun redirect ke aplikasi, jadi diganti section asli.
+  // Belum login hanya tautan marketing; sudah login diganti section aplikasi.
   const navLinks: NavLink[] = user
     ? [
         { title: "Konsultasi", href: "/consultations" },
@@ -107,7 +106,8 @@ export default function Navbar() {
       ];
 
   const avatarUrl = user?.user_metadata?.avatar_url as string | undefined;
-  const displayName = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
   const initials = displayName ? displayName.charAt(0).toUpperCase() : "?";
 
   return (
@@ -121,9 +121,23 @@ export default function Navbar() {
       >
         <Link
           href="/"
-          className="text-2xl font-bold tracking-tighter text-primary shrink-0"
+          onClick={(e) => {
+            // Kalau sudah di "/", Link ke rute yang sama tidak melakukan apa-apa,
+            // jadi scroll ke atas ditangani manual.
+            if (window.location.pathname === "/") {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          className="text-2xl font-bold tracking-tighter flex items-center gap-1 text-primary shrink-0"
         >
-          Healthalk<span className="text-primary/60">.</span>
+          <Image
+            src="/assets/healThalk-logo.webp"
+            alt="Logo HealThalk"
+            width="40"
+            height="40"
+          />
+          <h1>Healthalk.</h1>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
@@ -145,7 +159,7 @@ export default function Navbar() {
               >
                 {link.title}
               </Link>
-            )
+            ),
           )}
         </nav>
 
@@ -156,7 +170,9 @@ export default function Navbar() {
                 render={<Button variant="ghost" className="gap-2 px-1.5" />}
               >
                 <Avatar size="sm">
-                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                  {avatarUrl && (
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                  )}
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <span className="max-w-32 truncate text-sm">{displayName}</span>
@@ -180,12 +196,20 @@ export default function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : null}
-
-          {user ? (
-            <Button render={<Link href="/consultations" />}>Mulai Konsultasi</Button>
           ) : (
-            <Button onClick={() => openLogin("/consultations")}>Mulai Konsultasi</Button>
+            <Button
+              size="lg"
+              variant="ghost"
+              onClick={() => openLogin("/profile")}
+            >
+              Masuk
+            </Button>
+          )}
+
+          {!user && (
+            <Button size="lg" onClick={() => openLogin("/consultations")}>
+              Mulai Konsultasi
+            </Button>
           )}
         </div>
 
@@ -249,7 +273,7 @@ export default function Navbar() {
                 >
                   {link.title}
                 </Link>
-              )
+              ),
             )}
           </nav>
 
@@ -258,15 +282,24 @@ export default function Navbar() {
               <>
                 <div className="flex items-center gap-2 px-1 pb-2">
                   <Avatar size="sm">
-                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    {avatarUrl && (
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                    )}
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <span className="truncate text-sm font-medium">{displayName}</span>
+                  <span className="truncate text-sm font-medium">
+                    {displayName}
+                  </span>
                 </div>
                 <Button
                   variant="outline"
                   className="w-full rounded-full"
-                  render={<Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} />}
+                  render={
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    />
+                  }
                 >
                   Profil
                 </Button>
@@ -280,14 +313,6 @@ export default function Navbar() {
                 >
                   <LogOut className="size-4" />
                   Keluar
-                </Button>
-                <Button
-                  className="w-full"
-                  render={
-                    <Link href="/consultations" onClick={() => setIsMobileMenuOpen(false)} />
-                  }
-                >
-                  Mulai Konsultasi
                 </Button>
               </>
             ) : (
@@ -305,11 +330,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      <Suspense fallback={null}>
-        <LoginRedirectWatcher onRequest={handleLoginRequest} />
-      </Suspense>
-
-      <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} next={loginNext} />
     </>
   );
 }

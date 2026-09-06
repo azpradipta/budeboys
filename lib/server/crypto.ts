@@ -1,19 +1,5 @@
-/**
- * Enkripsi kolom `data` pada tabel consultations dan prescriptions, sehingga
- * akses langsung ke database hanya menghasilkan ciphertext. RLS tetap jadi
- * lapisan access control; ini melindungi datanya.
- *
- * APP_ENCRYPTION_KEY: 32 byte, hex atau base64.
- *   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
- * Mengganti key membuat row lama tidak terbaca, karena envelope belum
- * menyimpan key id.
- *
- * `aad` mengikat ciphertext ke user id pemiliknya, jadi row yang dipindah ke
- * user lain gagal auth tag.
- *
- * Row lama yang belum terenkripsi tetap berupa JSON biasa dan dilewatkan
- * apa adanya.
- */
+// Enkripsi AES-256-GCM untuk kolom `data` tabel consultations & prescriptions.
+// `aad` mengikat ciphertext ke user id, dan row lama tanpa enkripsi tetap lewat.
 
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
@@ -64,6 +50,16 @@ function isEnvelope(value: unknown): value is EncryptedEnvelope {
   );
 }
 
+// True bila APP_ENCRYPTION_KEY terpasang; melempar error kalau formatnya salah.
+export function isEncryptionConfigured(): boolean {
+  return getKey() !== null;
+}
+
+// True bila nilai `data` yang tersimpan sudah berupa envelope terenkripsi.
+export function isStoredEncrypted(value: unknown): boolean {
+  return isEnvelope(value);
+}
+
 function warnPlaintextOnce() {
   if (warned) return;
   warned = true;
@@ -73,21 +69,7 @@ function warnPlaintextOnce() {
   );
 }
 
-/** Apakah kunci enkripsi terpasang. Dipakai halaman /privacy supaya statusnya
- * dilaporkan apa adanya, bukan sekadar klaim di teks. Melempar error kalau
- * key ada tapi bentuknya salah, agar salah konfigurasi tidak lolos diam-diam. */
-export function isEncryptionConfigured(): boolean {
-  return getKey() !== null;
-}
-
-/** Apakah satu nilai yang sudah tersimpan di database benar-benar berbentuk
- * envelope terenkripsi, bukan JSON terbaca. */
-export function isStoredEncrypted(stored: unknown): boolean {
-  return isEnvelope(stored);
-}
-
-/** Mengembalikan envelope terenkripsi bila key tersedia, kalau tidak nilai
- * aslinya. Tipe kembalian tetap `T` agar call site tidak berubah. */
+// Mengembalikan envelope terenkripsi bila key ada, kalau tidak nilai aslinya.
 export function encryptForStorage<T>(data: T, aad?: string): T {
   const key = getKey();
   if (!key) {
@@ -113,8 +95,7 @@ export function encryptForStorage<T>(data: T, aad?: string): T {
   return envelope as unknown as T;
 }
 
-/** Kebalikan dari encryptForStorage. Melempar error bila menemukan envelope
- * tanpa key, atau bila ciphertext dan `aad` gagal diautentikasi. */
+// Kebalikan encryptForStorage. Error bila envelope ada tapi key tidak.
 export function decryptFromStorage<T>(stored: T, aad?: string): T {
   if (!isEnvelope(stored)) return stored;
 

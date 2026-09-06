@@ -3,12 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/shared/page-header";
-import { StatusBadge } from "@/components/shared/status-badge";
+import DashboardHeader from "@/components/DashboardHeader";
 import { PrescriptionVerify } from "@/components/prescription/prescription-verify";
 import { MedicationInfoCard } from "@/components/prescription/medication-info-card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,18 +15,13 @@ import { savePrescription, useConsultationSession, usePrescription } from "@/lib
 import { getMedicationInfo, parsePrescriptionText } from "@/lib/prescription-ai";
 import { recognizeRawText } from "@/lib/ocr-client";
 import { takePendingImage } from "@/lib/pending-image";
-import {
-  conditionOf,
-  CONDITION_KIND_LABEL,
-  assessmentOf,
-} from "@/lib/consultation-condition";
+import { conditionOf, assessmentOf } from "@/lib/consultation-condition";
 import type { MedicationInfo, PrescriptionItem, PrescriptionRecord } from "@/lib/types";
-import { ArrowLeft, ScanLine, ImageOff, Stethoscope, Sparkles } from "lucide-react";
+import { ScanLine, ImageOff, Stethoscope, Sparkles } from "lucide-react";
 
 export default function PrescriptionDetailPage() {
   const params = useParams<{ id: string }>();
-  // Di-key agar seluruh state lokal ikut ter-reset lewat remount saat
-  // berpindah resep, tanpa effect "reset saat id berubah".
+  // Di-key agar state lokal ter-reset lewat remount saat berpindah resep.
   return <PrescriptionDetailBody key={params.id} id={params.id} />;
 }
 
@@ -42,7 +35,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
   const [finalizing, setFinalizing] = useState(false);
   const [parsing, setParsing] = useState(false);
 
-  // Revoke the blob URL when it changes or the page unmounts.
+  // Melepas blob URL saat nilainya berganti atau halaman unmount.
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -53,8 +46,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     savePrescription(next);
   }
 
-  // Jalankan OCR sekali saat record baru dibuka, memakai file sementara
-  // yang dioper dari langkah unggah.
+  // Menjalankan OCR sekali saat record baru dibuka.
   useEffect(() => {
     if (!record || record.status !== "UPLOADED" || ranOcr.current) return;
     ranOcr.current = true;
@@ -72,8 +64,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     recognizeRawText(file)
       .then((rawText) => {
         setPreviewUrl(objectUrl);
-        // Berhenti di teks mentah: pengguna mengoreksi dulu, baru LLM
-        // mengubahnya jadi field terstruktur.
+        // Berhenti di teks mentah agar pengguna bisa mengoreksi sebelum di-parse.
         savePrescription({ ...record, status: "TEXT_REVIEW", rawText });
       })
       .catch(() => {
@@ -89,9 +80,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
     const rawText = (textRef.current?.value ?? record.rawText ?? "").trim();
     if (!rawText) return;
     setParsing(true);
-    // Selalu masuk ke tampilan field yang bisa diedit. Sekalipun LLM yakin,
-    // pengguna tetap perlu memeriksa nama obat, dosis, dan frekuensi sebelum
-    // penjelasan obat dibuat. Tombol "Konfirmasi Semua" jadi jalan cepatnya.
+    // Selalu lewat tampilan field yang bisa diedit, sekalipun LLM yakin.
     const advance = (items: PrescriptionItem[]) =>
       persist({ ...record, rawText, items, status: "NEEDS_VERIFICATION" });
     try {
@@ -163,18 +152,10 @@ function PrescriptionDetailBody({ id }: { id: string }) {
   const assessment = assessmentOf(consultation ?? null);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
-      <Link
-        href="/prescriptions"
-        className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-      >
-        <ArrowLeft className="size-3.5" /> Resep
-      </Link>
-      <PageHeader
-        eyebrow="Resep untuk kondisi"
-        title={cond.kind === "unknown" ? "Pemahaman Resep" : cond.label}
-        description="Obat untuk kondisi ini beserta penjelasannya. Dosis & aturan pakai selalu mengikuti yang dituliskan dokter."
-        actions={<StatusBadge status={record.status as "PROCESSING"} />}
+    <div className="mx-auto max-w-6xl px-6 py-26 space-y-6 ">
+      <DashboardHeader
+        heading="Resep Untuk Kondisi"
+        subHeading={cond.kind === "unknown" ? "Pemahaman Resep" : cond.label}
       />
 
       {consultation && (
@@ -185,15 +166,18 @@ function PrescriptionDetailBody({ id }: { id: string }) {
               <span className="text-xs font-semibold tracking-wide text-primary uppercase">
                 Kondisi / Pra-diagnosa
               </span>
-              <Badge variant="outline">{CONDITION_KIND_LABEL[cond.kind]}</Badge>
             </div>
-            <p className="font-heading text-base font-medium text-foreground">{cond.label}</p>
-            {assessment && <p className="text-sm text-muted-foreground">{assessment}</p>}
+            <p className="font-heading text-base font-medium text-foreground">
+              {cond.label}
+            </p>
+            {assessment && (
+              <p className="text-sm text-muted-foreground">{assessment}</p>
+            )}
             <Link
               href={backToConsultation}
               className="w-fit text-xs text-primary underline-offset-2 hover:underline"
             >
-              Lihat konsultasi asal →
+              <Button>Lihat konsultasi asal</Button>
             </Link>
           </CardContent>
         </Card>
@@ -264,9 +248,7 @@ function PrescriptionDetailBody({ id }: { id: string }) {
           </div>
         </div>
       ) : record.status === "NEEDS_VERIFICATION" || record.status === "VERIFIED" ? (
-        // Both states show the editable fields. When everything is already
-        // verified, PrescriptionVerify just hides the amber banner and keeps
-        // its "Lihat Informasi Obat" button enabled.
+        // Kedua status menampilkan field yang bisa diedit.
         <PrescriptionVerify
           items={record.items}
           previewUrl={previewUrl}

@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { queryHealthify } from "@/lib/server/healthify-client";
+import { queryRag } from "@/lib/server/rag-client";
 import {
-  mapHealthifyContext,
-  mapHealthifyEvidence,
-  mapHealthifyIntent,
-  mapHealthifyRisk,
-  toHealthifyContext,
-} from "@/lib/server/healthify-mapping";
+  mapRagContext,
+  mapRagEvidence,
+  mapRagIntent,
+  mapRagRisk,
+  toRagContext,
+} from "@/lib/server/rag-mapping";
+import { generateAgentTurn } from "@/lib/server/consultation-agent";
 import { detectSmallTalk, generateLocalTurn, smallTalkReply } from "@/lib/health-ai";
 import type { HealthContext } from "@/lib/types";
 
-/**
- * Satu giliran konsultasi. Healthify dicoba lebih dulu; bila tidak
- * dikonfigurasi atau gagal, generator lokal di lib/health-ai.ts yang menjawab
- * agar percakapan tetap jalan.
- *
- * Wajib login karena memanggil API pihak ketiga yang berbayar per request.
- */
+// Satu giliran konsultasi. Urutan: basa-basi, lalu RAG (evidence),
+// lalu agen OpenAI (paham keluhan apa pun), lalu generator rule-based.
+// Wajib login karena memanggil API pihak ketiga yang berbayar per request.
 
 interface TurnRequestBody {
   query: string;
@@ -25,6 +22,7 @@ interface TurnRequestBody {
   healthContext: HealthContext;
   hasPriorContext: boolean;
   lastAssistantText?: string;
+  history?: { role: "user" | "assistant"; text: string }[];
 }
 
 export async function POST(req: NextRequest) {
@@ -39,8 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing_query" }, { status: 400 });
   }
 
-  // Basa-basi dijawab langsung tanpa retrieval dan tanpa memakai kuota
-  // Healthify, jadi evidence hanya muncul saat memang ditanyakan.
+  // Basa-basi dijawab langsung, tanpa retrieval dan tanpa memakai kuota RAG.
   const social = detectSmallTalk(body.query);
   if (social) {
     return NextResponse.json({
@@ -54,22 +51,44 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const result = await queryHealthify({
+  const result = await queryRag({
     query: body.query,
     sessionId: body.sessionId,
-    healthContext: toHealthifyContext(body.healthContext),
+    healthContext: toRagContext(body.healthContext),
   });
 
   if (result) {
-    return NextResponse.json({
-      text: result.answer,
-      intent: mapHealthifyIntent(result.intent),
-      evidence: mapHealthifyEvidence(result.evidence),
-      risk: mapHealthifyRisk(result.safety),
-      insufficientEvidence: result.evidence_status === "INSUFFICIENT_EVIDENCE",
-      healthContext: mapHealthifyContext(result.health_context, body.healthContext),
-      source: "healthify",
-    });
+    const risk = mapRagRisk(result.safety);
+    // Pakai RAG hanya bila jawabannya benar-benar berlandasan evidence
+    // dan masih dalam cakupannya; sinyal darurat selalu diprioritaskan.
+    // Selain itu, keluhan sehari-hari yang tak tercakup literatur (sakit gigi,
+    // kaki pegal, radang gusi) diserahkan ke agen OpenAI di bawah.
+    const grounded =
+      result.answer?.trim().length > 0 &&
+      result.evidence.length > 0 &&
+      result.intent !== "UNSUPPORTED";
+
+    if (grounded || risk === "EMERGENCY_SIGNAL") {
+      return NextResponse.json({
+        text: result.answer,
+        intent: mapRagIntent(result.intent),
+        evidence: mapRagEvidence(result.evidence),
+        risk,
+        insufficientEvidence: result.evidence_status === "INSUFFICIENT_EVIDENCE",
+        healthContext: mapRagContext(result.health_context, body.healthContext),
+        source: "rag",
+      });
+    }
+  }
+
+  const agentTurn = await generateAgentTurn({
+    query: body.query,
+    healthContext: body.healthContext,
+    history: body.history ?? [],
+    lastAssistantText: body.lastAssistantText ?? "",
+  });
+  if (agentTurn) {
+    return NextResponse.json({ ...agentTurn, source: "openai" });
   }
 
   const local = generateLocalTurn(

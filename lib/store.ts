@@ -3,13 +3,8 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type { ConsultationSession, PrescriptionRecord } from "./types";
 
-/**
- * Lapisan data sisi klien di atas route di app/api/.
- *
- * Tiap koleksi punya cache in-memory supaya pembacaan tetap sinkron, syarat
- * useSyncExternalStore, sementara fetch berjalan di belakang. Penulisan masuk
- * ke cache dulu (optimistic) lalu disesuaikan dengan respons server.
- */
+// Lapisan data sisi klien di atas route app/api/, dengan cache in-memory
+// agar pembacaan tetap sinkron dan penulisan bersifat optimistic.
 
 interface Identifiable {
   id: string;
@@ -63,8 +58,7 @@ class ApiListStore<T extends Identifiable> {
     return this.notFound.has(id) ? null : undefined;
   };
 
-  /** Mengambil seluruh koleksi sekali. Aman dipanggil dari effect karena
-   * hanya mengubah cache dan memberi tahu subscriber, bukan setState. */
+  // Mengambil seluruh koleksi sekali, aman dipanggil dari effect.
   preloadList() {
     if (this.cache !== null || this.listInFlight) return;
     this.listInFlight = true;
@@ -77,8 +71,7 @@ class ApiListStore<T extends Identifiable> {
       });
   }
 
-  /** Mengambil satu item, untuk halaman detail yang dibuka sebelum list
-   * termuat (tautan langsung atau reload). */
+  // Mengambil satu item, untuk halaman detail yang dibuka sebelum list termuat.
   preloadOne(id: string) {
     if (this.cache?.some((item) => item.id === id)) return;
     if (this.notFound.has(id) || this.itemsInFlight.has(id)) return;
@@ -115,7 +108,7 @@ class ApiListStore<T extends Identifiable> {
         return saved;
       }
     } catch {
-      // Offline atau gagal jaringan, pertahankan nilai optimistic lokal.
+      // Offline atau gagal jaringan, jadi nilai optimistic lokal dipertahankan.
     }
     return item;
   }
@@ -144,8 +137,7 @@ export function useConsultationSessions(): ConsultationSession[] {
   );
 }
 
-/** undefined selama belum terjawab, null bila server memastikan id tidak
- * ada. Id kosong diabaikan, jadi pemanggil boleh mengirim "" dulu. */
+// undefined selama belum terjawab, null bila server memastikan id tidak ada.
 export function useConsultationSession(id: string): ConsultationSession | null | undefined {
   useEffect(() => {
     if (id) sessionStore.preloadOne(id);
@@ -182,7 +174,7 @@ export function usePrescription(id: string): PrescriptionRecord | null | undefin
   return useSyncExternalStore(prescriptionStore.subscribe, getSnapshot, () => undefined);
 }
 
-/** Sumber data daftar resep di halaman detail konsultasi. */
+// Sumber data daftar resep di halaman detail konsultasi.
 export function usePrescriptionsForConsultation(consultationId: string): PrescriptionRecord[] {
   const all = usePrescriptions();
   return all.filter((p) => p.consultationId === consultationId);

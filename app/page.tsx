@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { HomeAuthRedirect } from "@/components/home-auth-redirect";
 import { ScrollToPending } from "@/components/scroll-to-pending";
 import HeroSection from "@/components/HeroSection";
 import { JourneyStepper } from "@/components/shared/journey-stepper";
-import { Button } from "@/components/ui/button";
+import { ProtectedLinkButton } from "@/components/protected-link-button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   MessageCircle,
@@ -94,10 +93,15 @@ export default function Home() {
                 <CardDescription>{action.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button variant="outline" size="sm" className="w-full" render={<Link href={action.href} />}>
+                <ProtectedLinkButton
+                  href={action.href}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
                   Buka
                   <ArrowRight className="size-3.5" />
-                </Button>
+                </ProtectedLinkButton>
               </CardContent>
             </Card>
           ))}
@@ -177,10 +181,10 @@ export default function Home() {
             Mulai konsultasi suara sekarang. Informasi Anda tersimpan aman dan siap dibawa ke
             dokter.
           </p>
-          <Button size="lg" render={<Link href="/consultations" />}>
+          <ProtectedLinkButton size="lg">
             Mulai Konsultasi
             <ArrowRight className="size-4" />
-          </Button>
+          </ProtectedLinkButton>
         </div>
       </section>
     </>
