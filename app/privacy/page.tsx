@@ -1,16 +1,16 @@
-import { headers } from "next/headers";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import DashboardHeader from "@/components/DashboardHeader";
 import { DataControls } from "@/components/privacy/data-controls";
-import { SignInPrompt } from "@/components/privacy/sign-in-prompt";
 import { PolicyDocument } from "@/components/privacy/policy-document";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { SignInPrompt } from "@/components/privacy/sign-in-prompt";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { isEncryptionConfigured, isStoredEncrypted } from "@/lib/server/crypto";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CircleAlert, CircleCheck } from "lucide-react";
+import { headers } from "next/headers";
 
 export const metadata = {
   title: "Privasi & Keamanan — Healthalk",
@@ -128,12 +128,11 @@ export default async function PrivacyPage({
   const openaiEnabled = Boolean(process.env.OPENAI_API_KEY);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-14">
-      <PageHeader
-        eyebrow="Dokumen"
-        title="Privasi & Keamanan"
-        description="Kebijakan privasi Healthalk, status perlindungan yang sedang berlaku, dan kendali penuh atas data kesehatan Anda."
-      />
+    <div className="mx-auto max-w-6xl px-6 py-26 space-y-6">
+      <DashboardHeader
+              heading="Privasi & Keamanan"
+              subHeading="Kebijakan privasi Healthalk, status perlindungan yang sedang berlaku, dan kendali penuh atas data kesehatan Anda."
+            />
 
       {deleted === "1" && (
         <Alert className="mb-6">
