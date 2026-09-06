@@ -18,8 +18,7 @@ export const metadata = {
     "Kebijakan privasi Healthalk, status keamanan yang sedang berlaku, dan kendali atas data kesehatan Anda.",
 };
 
-// Halaman ini melaporkan kondisi nyata dan membaca sesi, jadi tidak boleh
-// dirender saat build maupun dipakai ulang dari cache bersama.
+// Membaca sesi dan kondisi nyata, jadi tidak boleh dirender saat build.
 export const dynamic = "force-dynamic";
 
 const BADGE = {
@@ -28,8 +27,7 @@ const BADGE = {
   warn: { text: "Perhatian", variant: "secondary" as const },
 };
 
-/** Baris status sengaja tanpa ikon: halaman ini dibaca sebagai dokumen, jadi
- * yang perlu menonjol adalah pernyataannya, bukan hiasannya. */
+/** Tanpa ikon, agar halaman ini terbaca sebagai dokumen. */
 function StatusRow({
   label,
   detail,
@@ -53,11 +51,8 @@ function StatusRow({
   );
 }
 
-/** Status enkripsi dilaporkan dari dua sisi sekaligus: apakah kuncinya
- * terpasang, dan apakah baris yang benar-benar ada di database sudah berupa
- * ciphertext. Keduanya bisa berbeda, misalnya saat kunci baru dipasang
- * setelah ada record lama. Pemeriksaan baris hanya mungkin bila ada sesi,
- * karena RLS membatasi bacaan ke baris milik pemanggil. */
+/** Dilaporkan dari dua sisi: kuncinya terpasang atau tidak, dan baris yang
+ * ada di database sudah ciphertext atau belum. Keduanya bisa berbeda. */
 function encryptionStatus(keyConfigured: boolean, storedIsCiphertext: boolean | null) {
   if (!keyConfigured) {
     return {
@@ -94,9 +89,8 @@ export default async function PrivacyPage({
 }) {
   const { deleted } = await searchParams;
 
-  // Halaman ini sengaja terbuka untuk umum: tautannya ada di footer setiap
-  // halaman, termasuk landing page yang justru dilihat pengunjung yang belum
-  // masuk. Hanya tab "Data Anda" yang butuh sesi.
+  // Terbuka untuk umum karena tertaut dari footer; hanya tab "Data Anda"
+  // yang butuh sesi.
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -130,7 +124,7 @@ export default async function PrivacyPage({
   const proto = (await headers()).get("x-forwarded-proto") ?? "http";
   const isHttps = proto === "https";
 
-  const healthifyEnabled = Boolean(process.env.HEALTHIFY_API_KEY);
+  const ragEnabled = Boolean(process.env.RAG_API_KEY);
   const openaiEnabled = Boolean(process.env.OPENAI_API_KEY);
 
   return (
@@ -175,7 +169,7 @@ export default async function PrivacyPage({
               </p>
               <Separator className="my-5" />
               <PolicyDocument
-                healthifyEnabled={healthifyEnabled}
+                ragEnabled={ragEnabled}
                 openaiEnabled={openaiEnabled}
               />
             </CardContent>
@@ -228,13 +222,13 @@ export default async function PrivacyPage({
                   state="on"
                 />
                 <StatusRow
-                  label="Pengiriman ke Healthify Intelligence API"
+                  label="Pengiriman ke RAG API"
                   detail={
-                    healthifyEnabled
+                    ragEnabled
                       ? "Aktif. Kalimat keluhan dan health context sesi dikirim ke layanan ini untuk menyusun jawaban berbasis evidence. Identitas Anda tidak ikut dikirim."
                       : "Tidak aktif. Konsultasi dijawab sepenuhnya oleh mesin aturan dan basis pengetahuan lokal, tanpa data yang keluar."
                   }
-                  state={healthifyEnabled ? "warn" : "on"}
+                  state={ragEnabled ? "warn" : "on"}
                 />
                 <StatusRow
                   label="Pengiriman ke OpenAI"

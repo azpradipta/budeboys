@@ -1,12 +1,8 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 
-/**
- * Kebijakan privasi, terpisah dari tab Keamanan yang melaporkan status
- * runtime. Isinya sengaja ditulis mengikuti perilaku kode yang benar-benar
- * berjalan, bukan template hukum umum — setiap klaim di sini bisa ditelusuri
- * ke berkas yang disebut.
- */
+/** Kebijakan privasi, terpisah dari tab Keamanan yang melaporkan status
+ * runtime. Isinya mengikuti perilaku kode yang benar-benar berjalan. */
 
 function Section({
   n,
@@ -75,10 +71,10 @@ function Processor({
 }
 
 export function PolicyDocument({
-  healthifyEnabled,
+  ragEnabled,
   openaiEnabled,
 }: {
-  healthifyEnabled: boolean;
+  ragEnabled: boolean;
   openaiEnabled: boolean;
 }) {
   return (
@@ -172,9 +168,9 @@ export function PolicyDocument({
             note="Healthalk hanya menerima profil dasar Anda sebagai hasilnya."
           />
           <Processor
-            name="Healthify Intelligence API"
-            host="healthify.twenti.studio"
-            active={healthifyEnabled}
+            name="RAG API"
+            host="ragai.twenti.studio"
+            active={ragEnabled}
             receives="Kalimat keluhan yang Anda tulis atau ucapkan, health context sesi tersebut, dan id sesi konsultasi."
             note="Id sesi adalah id konsultasi internal, bukan identitas Anda. Nama dan email Anda tidak ikut dikirim."
           />

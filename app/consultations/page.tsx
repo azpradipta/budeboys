@@ -66,6 +66,7 @@ export default function StartConsultationPage() {
               alt="Mulai Konsultasi"
               width={200}
               height={200}
+              preload
             />
           </div>
           <div>

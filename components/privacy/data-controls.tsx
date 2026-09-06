@@ -20,12 +20,8 @@ import { Download, Trash2, CircleAlert } from "lucide-react";
 
 const CONFIRM_WORD = "HAPUS";
 
-/**
- * Kontrol data milik pengguna: unduh salinan, atau hapus seluruhnya.
- *
- * Unduhan memakai tautan biasa, bukan fetch, supaya `content-disposition`
- * dari route API yang mengurus penyimpanan filenya.
- */
+/** Mengunduh salinan data atau menghapus seluruhnya. Unduhan memakai tautan biasa
+ * agar `content-disposition` dari route API yang mengurus berkasnya. */
 export function DataControls({ hasData }: { hasData: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -42,12 +38,9 @@ export function DataControls({ hasData }: { hasData: boolean }) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? `Gagal menghapus (HTTP ${res.status}).`);
       }
-      // Cache konsultasi dan resep hidup di level modul, jadi router.refresh()
-      // saja tidak cukup: halaman lain akan tetap menampilkan record yang
-      // sudah tidak ada. Kosongkan dulu, baru muat ulang tampilannya.
+      // Cache store hidup di level modul, jadi router.refresh() saja menyisakan
+      // record yang sudah terhapus.
       clearStoreCaches();
-      // Komponennya tetap ter-mount setelah navigasi ke halaman yang sama,
-      // jadi state dialognya dikembalikan ke awal.
       setOpen(false);
       setConfirmText("");
       setDeleting(false);

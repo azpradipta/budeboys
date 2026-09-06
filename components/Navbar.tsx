@@ -94,8 +94,9 @@ export default function Navbar() {
           <Image
             src="/assets/healThalk-logo.webp"
             alt="Logo HealThalk"
-            width="40"
-            height="40"
+            width={40}
+            height={40}
+            loading="eager"
           />
           <h1>Healthalk.</h1>
         </Link>

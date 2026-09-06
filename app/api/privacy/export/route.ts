@@ -3,11 +3,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { decryptFromStorage } from "@/lib/server/crypto";
 import type { ConsultationSession, StoredPrescriptionRecord } from "@/lib/types";
 
-/**
- * Unduh seluruh data milik pengguna sebagai satu file JSON (hak portabilitas
- * data). Isinya sudah didekripsi, jadi respons ini tidak boleh di-cache di
- * mana pun.
- */
+/** Mengirim seluruh data pengguna sebagai satu berkas JSON. Isinya sudah
+ * didekripsi, jadi respons ini tidak boleh di-cache. */
 export async function GET() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -23,8 +20,6 @@ export async function GET() {
   const error = consultations.error ?? prescriptions.error;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Record-nya sudah membawa createdAt sendiri, jadi kolom timestamp di tabel
-  // tidak perlu ikut diekspor.
   const payload = {
     exportedAt: new Date().toISOString(),
     account: { id: user.id, email: user.email },

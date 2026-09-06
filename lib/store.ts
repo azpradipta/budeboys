@@ -35,9 +35,8 @@ class ApiListStore<T extends Identifiable> {
     this.setCache(next);
   }
 
-  /** Kosongkan cache dan tandai belum pernah dimuat, lalu beri tahu
-   * subscriber. Dipakai setelah data dihapus di server, supaya UI tidak
-   * menampilkan record yang sebenarnya sudah tidak ada. */
+  /** Mengosongkan cache lalu memberi tahu subscriber, dipakai setelah data
+   * dihapus di server. */
   reset() {
     this.cache = null;
     this.notFound.clear();
@@ -117,8 +116,7 @@ class ApiListStore<T extends Identifiable> {
 const sessionStore = new ApiListStore<ConsultationSession>("/api/consultations");
 const prescriptionStore = new ApiListStore<PrescriptionRecord>("/api/prescriptions");
 
-/** Buang seluruh data yang di-cache di memori. Dipanggil setelah pengguna
- * menghapus datanya lewat halaman /privacy. */
+/** Membuang seluruh data yang di-cache di memori. */
 export function clearStoreCaches() {
   sessionStore.reset();
   prescriptionStore.reset();

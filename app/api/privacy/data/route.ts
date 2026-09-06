@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/**
- * Hapus seluruh konsultasi dan resep milik pengguna (hak penghapusan data).
- *
- * Akunnya sendiri tidak ikut dihapus — itu butuh service role key dan
- * konsekuensinya berbeda, jadi sengaja tidak dilakukan di sini.
- *
- * `prescriptions` sebenarnya sudah `on delete cascade` terhadap
- * `consultations`, tapi dihapus eksplisit lebih dulu supaya kegagalannya
- * terlihat sebagai error, bukan hilang diam-diam. Filter `user_id` ditulis
- * eksplisit walaupun RLS sudah menjaganya.
- */
+/** Menghapus seluruh konsultasi dan resep milik pengguna; akunnya sendiri tidak
+ * ikut. Resep dihapus eksplisit lebih dulu, walau sudah `on delete cascade`,
+ * agar kegagalannya terlihat sebagai error. */
 export async function DELETE() {
   const supabase = await createSupabaseServerClient();
   const {

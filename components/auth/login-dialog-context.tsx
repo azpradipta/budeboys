@@ -11,18 +11,9 @@ type LoginDialogContextValue = {
 
 const LoginDialogContext = createContext<LoginDialogContextValue | null>(null);
 
-/**
- * Proxy melempar kunjungan tanpa login ke "/?login=1&next=<path asal>".
- *
- * Parameternya dibaca lewat useSearchParams, bukan sekali dari
- * window.location saat mount: provider ini hidup di root layout dan tidak
- * pernah ter-mount ulang, sehingga redirect yang datang lewat navigasi sisi
- * klien akan terlewat dan dialognya tidak pernah terbuka. Itu yang membuat
- * tautan terproteksi di footer terasa tidak melakukan apa-apa.
- *
- * Dipisah jadi komponen sendiri agar bisa dibungkus <Suspense>, syarat
- * useSearchParams pada halaman yang dirender statis.
- */
+/** Menangkap redirect "/?login=1&next=..." dari proxy. Dibaca lewat
+ * useSearchParams agar tetap terdeteksi pada navigasi sisi klien, dan
+ * dibungkus <Suspense> sesuai syarat hook itu. */
 function LoginRedirectWatcher({ onRequest }: { onRequest: (next: string) => void }) {
   const params = useSearchParams();
   const pathname = usePathname();
@@ -31,9 +22,7 @@ function LoginRedirectWatcher({ onRequest }: { onRequest: (next: string) => void
   useEffect(() => {
     if (params.get("login") !== "1") return;
     onRequest(params.get("next") ?? "/consultations");
-    // Dibersihkan lewat router, bukan history.replaceState, supaya state
-    // router ikut berubah. Kalau tidak, redirect kedua ke path yang sama
-    // dianggap tidak mengubah apa pun dan dialognya tidak terbuka lagi.
+    // Lewat router, bukan history.replaceState, agar state router ikut berubah.
     router.replace(pathname);
   }, [params, pathname, router, onRequest]);
 

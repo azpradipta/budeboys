@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
   if (result) {
     const risk = mapRagRisk(result.safety);
-    // Pakai RAG hanya bila jawabannya benar-benar berlandasan evidence
+    // Memakai RAG hanya bila jawabannya benar-benar berlandasan evidence
     // dan masih dalam cakupannya; sinyal darurat selalu diprioritaskan.
     // Selain itu, keluhan sehari-hari yang tak tercakup literatur (sakit gigi,
     // kaki pegal, radang gusi) diserahkan ke agen OpenAI di bawah.

@@ -5,11 +5,8 @@ import { Button } from "@/components/ui/button";
 import { LoginDialog } from "@/components/auth/login-dialog";
 import { LogIn } from "lucide-react";
 
-/**
- * Halaman /privacy bisa dibaca siapa saja, tapi bagian data pribadinya butuh
- * sesi. Dialog login dibawa sendiri di sini, bukan menumpang milik Navbar,
- * supaya kartunya tetap berfungsi tanpa bergantung pada parameter URL.
- */
+/** Bagian data pribadi di /privacy butuh sesi, sedangkan halamannya terbuka
+ * untuk umum. */
 export function SignInPrompt() {
   const [open, setOpen] = useState(false);
 
